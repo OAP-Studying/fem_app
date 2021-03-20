@@ -131,7 +131,7 @@ def massive_export():
         text = text + '\n'
     with open(filepath, "w", encoding="utf8") as output_file:
         output_file.write(text)
-    window1.title(f"Методомконечныхэлементоврешателенатор - {filepath}")
+    window1.title(f"Методомконечныхэлементоврешателенатор 3000 - {filepath}")
 
 
 # функция импорта данных расчётной схемы из файла
@@ -150,7 +150,7 @@ def massive_import():
         for j in ar_of_str:
             ar_of_int.append(int(j))
         ar_of_data[i] = ar_of_int
-    window1.title(f"Методомконечныхэлементоврешателенатор - {filepath}")
+    window1.title(f"Методомконечныхэлементоврешателенатор 3000 - {filepath}")
 
 
 # функция рисования элемента балки
