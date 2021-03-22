@@ -9,7 +9,7 @@ fem_data = []
 # fem_data[1] - node_fixations       - заделки узлов = 1 - заделка, 0 - нет
 # fem_data[2] - nodes_of_elements    - номера узлов элементов = [меньш.уз, больш.уз] (узлы с нуля)
 # fem_data[3] - rigidity_of_elements - жёсткость элементов = (1..99), стержни уже поделённые на L
-# fem_data[4] - elem_length          - длины элементов = 0 - пружина, (1..5) - стержень
+# fem_data[4] - elem_length          - длины элементов = (1..5)
 # fem_data[5] - type_of_elements     - типы элементов = "EF" / "c"
 
 rigidity_matrix_general = []
@@ -21,8 +21,9 @@ node_forces_vector_values = []
 node_displacement_vector_general = []
 boundary_conditions_matrix_general = []
 boundary_conditions_matrix_values = []
-boundary_conditions_vector_general = []
-boundary_conditions_vector_values = []
+boundary_conditions_forces_vector_general = []
+boundary_conditions_forces_vector_values = []
+boundary_conditions_displacement_vector_general = []
 
 
 # функция вычисления знака числа
@@ -147,7 +148,8 @@ def node_forces_vector():
 
     for i in range(len(fem_data[2])):  # перебираем элементы
         for j in range(2):
-            node_forces_vector_general[fem_data[2][i][j]] += f"f{i+1}{j+1}" if node_forces_vector_general[fem_data[2][i][j]] == "" else f"+f{i+1}{j+1}"
+            node_forces_vector_general[fem_data[2][i][j]] += f"f{i+1}" if node_forces_vector_general[fem_data[2][i][j]] == "" else f"+f{i+1}"
+            # обозначение с указанием начала и конца вектора было f{i+1}{j+1}
 
     for i in fem_data[0]:
         node_forces_vector_values.append(i / 1)
@@ -195,27 +197,186 @@ def boundary_conditions_matrix():
 
 
 # функция создания копии вектора сил с граничными условиями
-def boundary_conditions_vector():
+def boundary_conditions_forces_vector():
 
-    global boundary_conditions_vector_general
-    global boundary_conditions_vector_values
+    global boundary_conditions_forces_vector_general
+    global boundary_conditions_forces_vector_values
 
-    boundary_conditions_vector_general.clear()
-    boundary_conditions_vector_values.clear()
+    boundary_conditions_forces_vector_general.clear()
+    boundary_conditions_forces_vector_values.clear()
 
     # разбираемся с общим видом
-    boundary_conditions_vector_general = deepcopy(node_forces_vector_general)
+    boundary_conditions_forces_vector_general = deepcopy(node_forces_vector_general)
 
     for k in range(len(fem_data[1])):
         if fem_data[1][k] == 1:
-            boundary_conditions_vector_general[k] = '0'
+            boundary_conditions_forces_vector_general[k] = '0'
 
     # на всякий случай проверим и числа
-    boundary_conditions_vector_values = deepcopy(node_forces_vector_values)
+    boundary_conditions_forces_vector_values = deepcopy(node_forces_vector_values)
 
     for k in range(len(fem_data[1])):
         if fem_data[1][k] == 1:
-            boundary_conditions_vector_values[k] = 0.0
+            boundary_conditions_forces_vector_values[k] = 0.0
 
 
+# функция создания вектора неизвестных узловых перемещений
+def boundary_conditions_displacement_vector():
 
+    global boundary_conditions_displacement_vector_general
+
+    boundary_conditions_displacement_vector_general.clear()
+
+    # разбираемся с общим видом
+    boundary_conditions_displacement_vector_general = deepcopy(node_displacement_vector_general)
+
+    for k in range(len(fem_data[1])):
+        if fem_data[1][k] == 1:
+            boundary_conditions_displacement_vector_general[k] = '0'
+
+
+# __________________________________________________________________________________
+#     в целях импортозамещения для вычисления обратной матрицы используем вместо
+#         модуля numpy код отечественного разработчика Серебрянникова Олега
+
+
+# функция вычисления минора матрицы, стоящего на пересечении строки 'r' и столбца 'c'
+def minor_det(matrix, r, c):
+
+    # число строк ИСХОДНОЙ матрицы
+    rows = len(matrix)
+    # число столбцов ИСХОДНОЙ матрицы
+    cols = len(matrix[0])
+
+    # Создаём МИНОРНУЮ матрицу (rows-1)*(cols-1), заполняя элементами
+    # из старой матрицы, но не учитывая строку 'r' и столбец 'c'
+    minor_matrix = []
+    # Счётчик строк новой матрицы, чтобы можно было её заполнять
+    cnt_row = -1
+    # Обходим СТРОКИ ИСХОДНОЙ матрицы
+    for i in range(rows):
+        # если строка ИСХОДНОЙ матрицы не равна вычеркнутой строке 'r'
+        if i != r:
+            # Можно заполнять строку новой матрицы
+            minor_matrix.append([])
+            # Увеличиваем счётчик строк новой матрицы
+            cnt_row += 1
+            # Обходим СТОЛБЦЫ ИСХОДНОЙ матрицы
+            for j in range(cols):
+                # если столбец ИСХОДНОЙ матрицы не равен вычеркнутому 'c'
+                if j != c:
+                    # Можно добавить этот элемент в строку минорной
+                    minor_matrix[cnt_row].append(matrix[i][j])
+
+    # После получения минорной матрицы находим её определитель
+    # это и есть Минор - результат функции
+    return det(minor_matrix)
+
+
+# функция поиска определителя мятрицы
+def det(matrix):
+    # число строк матрицы
+    rows = len(matrix)
+    # число столбцов матрицы
+    cols = len(matrix[0])
+
+    # Если число строк матрицы = 1, то эта матрица
+    # состоит из одного элемента
+    # Определитель такой матрицы матрицы будет сам этот элемент
+    if rows == 1:
+        return matrix[0][0]
+
+    # Если матрица состоит из более чем одного элемента, то
+    # Найдём определитель матрицы, разложив её по первой строке
+    # Переменная для хранения результата работы функции
+    res = 0
+    for j in range(cols):
+        # Если элемент строки равен нулю, то просто пропускаем его
+        # Чтобы не затрачивать ресурся на вычисление минорный определитель
+        if matrix[0][j] != 0:
+            # Вычисляем Алгебраическое дополнение
+            # для каждого элемента строки
+            a = ((-1) ** (0 + j)) * minor_det(matrix, r=0, c=j)
+            # Прибавляем его к результату функции
+            res += a * matrix[0][j]
+
+    # возвращаем резултат работы функции
+    return res
+
+
+# функция для транспонирования матрицы
+def transpose(matrix):
+    # Транспонировать - это значит поменять местами элементы
+    # матрицы относительно главной диагонали
+    # Будем считать что матрица квадратная
+
+    # Матрица которая будет транспонированной
+    matrix = deepcopy(matrix)
+
+    # Число строк матрицы
+    size = len(matrix)
+
+    for i in range(size - 1):
+        # нам нужно обходить элементы только что ВЫШЕ
+        # главной диагонали j=i
+        for j in range(i + 1, size):
+            matrix[i][j], matrix[j][i] = matrix[j][i], matrix[i][j]
+
+    # Возвращаем транспонированную матрицу
+    return matrix
+
+
+# функция поиска обратной матрицы
+def inverse_matrix(matrix):
+    # Находим определитель матрицы
+    determinant = det(matrix)
+    # Если определитель матрицы равен нулю
+    if determinant == 0:
+        # вызываем исключение, так как не получится найти
+        # Обратную матрицу
+        raise Exception("Определитель матрицы = 0")
+
+    # Определдитель не нулевой, тогда можно искать обратную матрицу
+
+    # Считаем, что матрица квадратная
+    # число строк матрицы
+    size = len(matrix)
+
+    # Соберём матрицу Алгебраических дополнений
+    a_matrix = []
+    # Обходим СТРОКИ ИСХОДНОЙ матрицы
+    for i in range(size):
+        # Добавляем новую строку к матрице Алг. дополнений
+        a_matrix.append([])
+        # Обходим столбцы ИСХОДНОЙ матрицы
+        for j in range(size):
+            # Вычисляем Алгебраическое дополнение
+            # для каждого элемента
+            a = ((-1) ** (i + j)) * minor_det(matrix, r=i, c=j)
+            # Добавляем его в матрицу Алг. дополнений
+            a_matrix[i].append(a)
+
+    # Транспонируем матрицу Алг. дополнений
+    trans_a = transpose(a_matrix)
+
+    # Теперь можно вычислить обратную матрицу
+    # По формуле это транспонированная матрица
+    # Алгебраических дополений, разделённая на определитель
+    # Исходной матрицы
+    # То есть все члены транспонированной матрицы Алг. дополнений
+    # нужно умножить на число 1/determinant
+
+    res_matrix = []
+    for i in range(size):
+        # Добавляем новую строку к результирующей - ОБРАТНОЙ матрице
+        res_matrix.append([])
+        for j in range(size):
+            # Вычисляем элемент обратной матрицы
+            el = (1 / determinant) * trans_a[i][j]
+            # Добавляем этот элемент к результирующей матрице
+            res_matrix[i].append(el)
+
+    # Возвращаем результат работы функции - обратную матрицу
+    return res_matrix
+
+# _________________________________________________________________________________
