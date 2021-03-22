@@ -8,7 +8,6 @@ from copy import deepcopy
 from tkinter.ttk import Combobox
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 
-
 type_of_node = ["простой", "соединение", "заделка"]
 type_of_elem = ["стержень", "пружина", "удалить"]
 node_data_copy = [0, 0]
@@ -108,11 +107,12 @@ def calculation():
     mm.rigidity_matrix_array()
 
     # находим все объекты матричной системы для блока 2
-    mm.common_rigidity_matrix()       # матрица жёсткости = общий вид, числа
-    mm.node_forces_vector()           # вектор узловых сил = общий вид, числа
-    mm.node_displacement_vector()     # вектор перемещений
-    mm.boundary_conditions_matrix()   # матрица жёсткости с гран условиями = общий вид, числа
-    mm.boundary_conditions_vector()   # вектор узловых сил с гран условиями = общий вид, числа
+    mm.common_rigidity_matrix()                    # матрица жёсткости = общий вид, числа
+    mm.node_forces_vector()                        # вектор узловых сил = общий вид, числа
+    mm.node_displacement_vector()                  # вектор перемещений
+    mm.boundary_conditions_matrix()                # матрица жёсткости с гран условиями = общий вид, числа
+    mm.boundary_conditions_forces_vector()         # вектор узловых сил с гран условиями = общий вид, числа
+    mm.boundary_conditions_displacement_vector()   # вектор перемещений с гран условиями
 
     # заполняем систему на основе выбранных параметров
     create_output_matrix(cmb_calculate1.current(), cmb_calculate2.current())
@@ -374,7 +374,7 @@ def create_bracket(canvas, b_type, x, n, width, color):  # родительск�
 
 
 # функция построения системы уравнений в матричном виде для решаемой задачи
-def create_output_matrix(set1, set2):  # листбокс1 (0 - без гран., 0 - с гран.), листбокс2 (0 - общий, 0 - числовой)
+def create_output_matrix(set1, set2):  # листбокс1 (0 - без гран., 1 - с гран.), листбокс2 (0 - общий, 1 - числовой)
     # если таблица создана, то удаляем её и потомков
     if len(output_matrix) > 0:
         output_matrix[0].destroy()
@@ -393,12 +393,12 @@ def create_output_matrix(set1, set2):  # листбокс1 (0 - без гран.
         f_vector = deepcopy(mm.node_forces_vector_values)
     elif (set1 == 1) and (set2 == 0):                       # общая с граничными
         k_matrix = deepcopy(mm.boundary_conditions_matrix_general)
-        q_vector = deepcopy(mm.node_displacement_vector_general)
-        f_vector = deepcopy(mm.boundary_conditions_vector_general)
+        q_vector = deepcopy(mm.boundary_conditions_displacement_vector_general)
+        f_vector = deepcopy(mm.boundary_conditions_forces_vector_general)
     else:                                                   # числа с граничными
         k_matrix = deepcopy(mm.boundary_conditions_matrix_values)
-        q_vector = deepcopy(mm.node_displacement_vector_general)
-        f_vector = deepcopy(mm.boundary_conditions_vector_values)
+        q_vector = deepcopy(mm.boundary_conditions_displacement_vector_general)
+        f_vector = deepcopy(mm.boundary_conditions_forces_vector_values)
 
     # создаём таблицу и холсты
     output_matrix.append(tk.Frame(master=cnv2, relief=tk.FLAT, bg="white", borderwidth=0))
@@ -414,9 +414,9 @@ def create_output_matrix(set1, set2):  # листбокс1 (0 - без гран.
     for i in range(len(f_vector)):
         lbl_matrix[0].append([])
         for j in range(len(f_vector)):
-            lbl_matrix[0][i].append(tk.Label(master=output_matrix[0], font=('Courier', 21-len(f_vector)), bg="white",
+            lbl_matrix[0][i].append(tk.Label(master=output_matrix[0], font=('Courier', max(21-len(f_vector), 4)),
                                              fg=ar_of_font_colors[4] if str(k_matrix[i][j])[0] == '0' else
-                                             ar_of_font_colors[1],
+                                             ar_of_font_colors[1], bg="white",
                                              text=f'{k_matrix[i][j]:4.1f}' if type(k_matrix[i][j]) != str else
                                              f' {k_matrix[i][j]} ' if k_matrix[i][j] == '0' else k_matrix[i][j]))
             lbl_matrix[0][i][j].grid(row=i, column=j+1, padx=((21-len(f_vector))//5)+1, pady=0,
@@ -424,13 +424,13 @@ def create_output_matrix(set1, set2):  # листбокс1 (0 - без гран.
 
     # заполняем таблицу лейблами векторов q и f
     for i in range(len(f_vector)):
-        lbl_matrix[1].append(tk.Label(master=output_matrix[0], font=('Courier', 21-len(f_vector)), bg="white",
+        lbl_matrix[1].append(tk.Label(master=output_matrix[0], font=('Courier', max(21-len(f_vector), 4)), bg="white",
                                       fg=ar_of_font_colors[0] if q_vector[i] != '0' else ar_of_font_colors[4],
                                       text=q_vector[i]))
         lbl_matrix[1][i].grid(row=i, column=len(f_vector)+2, padx=((21-len(f_vector))//7)+1, pady=0)
 
     for i in range(len(f_vector)):
-        lbl_matrix[2].append(tk.Label(master=output_matrix[0], font=('Courier', 21-len(f_vector)), bg="white",
+        lbl_matrix[2].append(tk.Label(master=output_matrix[0], font=('Courier', max(21-len(f_vector), 4)), bg="white",
                                       fg=ar_of_font_colors[4] if str(f_vector[i])[0] == '0' else ar_of_font_colors[3],
                                       text=f'{f_vector[i]:4.1f}' if type(f_vector[i]) != str else
                                       f' {f_vector[i]} ' if f_vector[i] == '0' else f_vector[i]))
@@ -445,6 +445,7 @@ def create_output_matrix(set1, set2):  # листбокс1 (0 - без гран.
                     lbl_matrix[0][j][i].config(fg=ar_of_colors[2])
                 for i in range(len(f_vector)):
                     lbl_matrix[0][i][j].config(fg=ar_of_colors[2])
+                lbl_matrix[1][j].config(fg=ar_of_colors[2])
                 lbl_matrix[2][j].config(fg=ar_of_colors[2])
 
     # рисуем скобки
@@ -562,7 +563,12 @@ def element_full_recreating(el_count):   # кол-во элементов = len(
 
 
 # функция скрытия и открытия блоков
-def block_click_event(box, h):
+def block_click_event(event, box, h):
+    print(event)
+    if event.num == 1:
+        box11['height'] = 5
+        box21['height'] = 5
+        box31['height'] = 5
     if box['height'] == 5:
         box['height'] = h
     else:
@@ -938,7 +944,7 @@ def create_add_btn_event(ind_of_node, n):
 
 
 # функция обработки взаимодействия со спинбоксом
-def spin_input_num_event(event=""):   # изменилось значение в боксе
+def spin_input_num_event(event="<ButtonPress event keycode=1 x=30 y=20>"):   # изменилось значение в боксе
     keycode = 0
     if event != "":
         keycode = event.keycode
@@ -989,6 +995,7 @@ def btn_calculate_event():
     calculation()
 
 
+# coded by QWertyIX
 if __name__ == '__main__':
     window1 = tk.Tk()
     window1.resizable(width=False, height=False)
@@ -1001,6 +1008,7 @@ if __name__ == '__main__':
     global_frame.pack()
 
 # блок 0 (информационный)
+
     frame0 = tk.Frame(master=global_frame, width=1070, height=60, relief=tk.RIDGE, borderwidth=6)
     frame0.grid(row=0, column=0, padx=5, pady=5)
 
@@ -1014,6 +1022,7 @@ if __name__ == '__main__':
     lbl0.place(anchor="center", relx=0.5, rely=0.5)
 
 # блок 1 (условие)
+
     frame1 = tk.Frame(master=global_frame, relief=tk.RIDGE, borderwidth=6)
     frame1.grid(row=1, column=0, padx=5, pady=5)
 
@@ -1027,8 +1036,10 @@ if __name__ == '__main__':
         master=box10,
         text=" Настройка.",
         font=('Courier', 12, 'bold'),
-        relief=tk.FLAT, borderwidth=0, height=1, cursor='hand2', command=lambda: block_click_event(box11, 440))
+        relief=tk.FLAT, borderwidth=0, height=1, cursor='hand2')  # , command=lambda: block_click_event(box11, 440))
     btn1_title.place(anchor="nw", relx=0, rely=0)
+    btn1_title.bind('<Button 1>', lambda event: block_click_event(event, box=box11, h=440))
+    btn1_title.bind("<Button 3>", lambda event: block_click_event(event, box=box11, h=440))
 
     lbl1_info = tk.Label(
         master=box10,
@@ -1085,8 +1096,10 @@ if __name__ == '__main__':
         master=box20,
         text=" Вычисления.",
         font=('Courier', 12, 'bold'),
-        relief=tk.FLAT, borderwidth=0, height=1, cursor='hand2', command=lambda: block_click_event(box21, 346))
+        relief=tk.FLAT, borderwidth=0, height=1, cursor='hand2')  # , command=lambda: block_click_event(box21, 346))
     btn2_title.place(anchor="nw", relx=0, rely=0)
+    btn2_title.bind('<Button 1>', lambda event: block_click_event(event, box=box21, h=346))
+    btn2_title.bind("<Button 3>", lambda event: block_click_event(event, box=box21, h=346))
 
     lbl2_info = tk.Label(
         master=box20,
@@ -1120,6 +1133,51 @@ if __name__ == '__main__':
 
     cnv2 = tk.Canvas(master=box21, width=1030, height=270, relief=tk.RIDGE, bg="white", borderwidth=3)
     cnv2.place(anchor="n", relx=0.5, y=58)
+
+    # продолжение
+
+# блок 3 (результаты)
+
+    frame3 = tk.Frame(master=global_frame, relief=tk.RIDGE, borderwidth=6)
+    frame3.grid(row=3, column=0, padx=5, pady=5)
+
+    box30 = tk.Frame(master=frame3, width=1050, height=20, relief=tk.FLAT, borderwidth=0)
+    box30.grid(row=0, column=0, padx=5, pady=5)
+
+    box31 = tk.Frame(master=frame3, width=1050, height=5, relief=tk.RIDGE, borderwidth=3)
+    box31.grid(row=1, column=0, padx=5, pady=5)
+
+    btn3_title = tk.Button(
+        master=box30,
+        text=" Результаты.",
+        font=('Courier', 12, 'bold'),
+        relief=tk.FLAT, borderwidth=0, height=1, cursor='hand2')  # , command=lambda: block_click_event(box31, 346))
+    btn3_title.place(anchor="nw", relx=0, rely=0)
+    btn3_title.bind('<Button 1>', lambda event: block_click_event(event, box=box31, h=346))
+    btn3_title.bind("<Button 3>", lambda event: block_click_event(event, box=box31, h=346))
+
+    lbl3_info = tk.Label(
+        master=box30,
+        text="Просмотрите или сохраните в файл конечные результаты решения данной задачи. ",
+        font=('Courier', 12, 'italic'),
+        height=1)
+    lbl3_info.place(anchor="ne", relx=1, rely=0)
+
+    box310 = tk.Frame(master=box31, relief=tk.FLAT, borderwidth=0)
+    box310.place(anchor='n', relx=0.5, y=15)
+
+    lbl3_calculate = tk.Label(
+        master=box310,
+        text="Текст блока 3",
+        font=('Courier', 12))
+    lbl3_calculate.grid(row=0, column=0, padx=12, pady=0)
+
+    btn_3 = tk.Button(master=box310, text="Показать", width=10, font=('Courier', 10), state='disabled',
+                      relief=tk.RIDGE, borderwidth=3)
+    btn_3.grid(row=0, column=3, padx=12, pady=0)
+
+    cnv3 = tk.Canvas(master=box31, width=1030, height=270, relief=tk.RIDGE, bg="white", borderwidth=3)
+    cnv3.place(anchor="n", relx=0.5, y=58)
 
     # продолжение
 
