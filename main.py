@@ -564,7 +564,6 @@ def element_full_recreating(el_count):   # кол-во элементов = len(
 
 # функция скрытия и открытия блоков
 def block_click_event(event, box, h):
-    print(event)
     if event.num == 1:
         box11['height'] = 5
         box21['height'] = 5
@@ -944,7 +943,7 @@ def create_add_btn_event(ind_of_node, n):
 
 
 # функция обработки взаимодействия со спинбоксом
-def spin_input_num_event(event="<ButtonPress event keycode=1 x=30 y=20>"):   # изменилось значение в боксе
+def spin_input_num_event(event=""):   # изменилось значение в боксе
     keycode = 0
     if event != "":
         keycode = event.keycode
