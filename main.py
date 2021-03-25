@@ -530,6 +530,44 @@ def create_output_matrix(set1, set2):  # листбокс1 (0 - без гран.
     output_matrix[3].create_line((32, 155), (48, 155), width=2, fill=ar_of_font_colors[4], tag="brackets")
 
 
+# функция рисования пружины длины L из левого узла
+def create_graph(ind_of_axis, ind_of_el, canvas, width, x_array, norm_factor1, norm_factor2, force_approximations):
+    x_beg = ar_of_data[4][ind_of_el]
+    x_end = ar_of_data[4][ind_of_el + 1]
+    y_axis = ar_of_axis[ind_of_axis]
+    el_length = x_end - x_beg
+    h = el_length // 20
+
+    if ind_of_axis == 1:
+        ind_of_el_global = ar_of_data[7][ind_of_el] - 1
+    else:
+        ind_of_el_global = ind_of_el
+
+    canvas.create_line((x_beg, y_axis), (x_end, y_axis), width=width, fill=ar_of_font_colors[4], tag="axis_graph")
+
+    u = [mm.node_displacement_vector_values[(ar_of_data[6][ind_of_el] - 1) if ind_of_axis == 1 else ind_of_el],
+         mm.node_displacement_vector_values[(ar_of_data[6][ind_of_el + 1] - 1) if ind_of_axis == 1 else ind_of_el + 1]]
+
+    fa = round(force_approximations[ind_of_el_global] * norm_factor2)
+
+    canvas.create_line((x_beg, y_axis - fa), (x_end, y_axis - fa),
+                       width=width, fill='#0000bf', tag="fa_graph")
+
+    ea = []
+    for i in range(len(x_array)):
+        ea.append(mm.element_approximation(x_array[i], u) * norm_factor1)
+
+    for i in range(len(ea) - 1):
+        canvas.create_line((x_beg + round(x_array[i] * el_length), y_axis - ea[i]),
+                           (x_beg + round(x_array[i + 1] * el_length), y_axis - ea[i+1]),
+                           width=width, fill='#9900bf', tag="ea_graph")
+
+    canvas.create_line((x_beg, y_axis - h), (x_beg, y_axis + h),
+                       width=width, fill=ar_of_font_colors[4], tag="axis_graph")
+    canvas.create_line((x_end, y_axis - h), (x_end, y_axis + h),
+                       width=width, fill=ar_of_font_colors[4], tag="axis_graph")
+
+
 # функция вывода результатов в виде текста или графиков
 def output_result(set1, accuracy):  # листбокс (0=данные, 1=графики, 2=деформ.сист.), количество отрезков (1..10)
     global type_of_result_now
@@ -639,7 +677,33 @@ def output_result(set1, accuracy):  # листбокс (0=данные, 1=гра
         output_area = tk.Canvas(master=area_box, width=1028, height=362, relief=tk.RIDGE, bg="white", borderwidth=3)
         output_area.pack()
 
-        print("Данная функция временно недоступка")
+        # нормируем смещения узлов так, что максимальное смещение = 70 pix и получаем массив со смещениями в пикселях
+        pos_dis = max(*mm.node_displacement_vector_values, 0)
+        neg_dis = min(*mm.node_displacement_vector_values, 0)
+        max_displacement = max(pos_dis, abs(neg_dis))
+        norm_factor1 = 70 / max_displacement
+
+        force_approximations = []
+        for i in range(len(mm.fem_data[4])):
+            u = [mm.node_displacement_vector_values[mm.fem_data[2][i][0]],
+                 mm.node_displacement_vector_values[mm.fem_data[2][i][1]]]
+            force_approximations.append(mm.force_approximation(u, mm.fem_data[4][i], mm.fem_data[3][i]))
+        pos_frc = max(*force_approximations, 0)
+        neg_frc = min(*force_approximations, 0)
+        max_force = max(pos_frc, abs(neg_frc))
+        norm_factor2 = 70 / max_force
+
+        # строим локальные графики
+        for i in range(len(ar_of_data[2])):
+            if ar_of_data[2][i] != 0:
+                create_graph(0, i, output_area, 2, x_array, norm_factor1, norm_factor2, force_approximations)
+            if ar_of_data[3][i] != 0:
+                create_graph(1, i, output_area, 2, x_array, norm_factor1, norm_factor2, force_approximations)
+
+        # строим соединения узлов
+        for i in range(len(ar_of_data[0])):
+            if ar_of_data[0][i] == 2:
+                create_connection(i, output_area, ar_of_font_colors[4], 2)
 
     else:  # деформированное состояние системы
         type_of_result_now = 2
@@ -660,7 +724,7 @@ def output_result(set1, accuracy):  # листбокс (0=данные, 1=гра
         neg_def = min(*element_deformations, 0)
         max_deformation = max(pos_def, abs(neg_def))
 
-        norm_factor1 = 99 / max_deformation
+        norm_factor1 = 200 / max_deformation
         scaled_deformations = []
         for i in element_deformations:
             scaled_deformations.append(round(abs(i * norm_factor1)))
@@ -714,17 +778,17 @@ def output_result(set1, accuracy):  # листбокс (0=данные, 1=гра
         # строим деформированные элементы (значение > 0 - балка, иначе пружина)
         for i in range(len(ar_of_data[2])):
             if ar_of_data[2][i] > 0:
-                create_deformed_balk(i, output_area, f'#{scaled_deformations[i]:02.0f}00BF', 3)
+                create_deformed_balk(i, output_area, f'#{scaled_deformations[i]:0>2x}00bf', 3)
             elif ar_of_data[2][i] < 0:
-                create_deformed_spring(0, i, output_area, f'#{scaled_deformations[i]:02.0f}00BF', 3)
+                create_deformed_spring(0, i, output_area, f'#{scaled_deformations[i]:0>2x}00bf', 3)
         for i in range(len(ar_of_data[2])):
             if ar_of_data[3][i] < 0:
-                create_deformed_spring(1, i, output_area, f'#{scaled_deformations[ar_of_data[7][i]-1]:02.0f}00BF', 3)
+                create_deformed_spring(1, i, output_area, f'#{scaled_deformations[ar_of_data[7][i]-1]:0>2x}00bf', 3)
 
         # строим смещённые закрепления узлов (значение 2 - подсоединение, 3 - заделка)
         for i in range(len(ar_of_data[0])):
             if ar_of_data[0][i] == 2:
-                create_deformed_connection(i, output_area, f'#{scaled_deformations[i]:02.0f}00BF', 3)
+                create_deformed_connection(i, output_area, f'#{scaled_deformations[i]:0>2x}00bf', 3)
             if ar_of_data[0][i] == 3:
                 create_fixation(0, i, output_area, 3)
         for i in range(len(ar_of_data[0])):
@@ -1309,7 +1373,9 @@ def btn_result_export_event():
             with open(filepath, "w", encoding="utf8") as output_file:
                 output_file.write(text)
         elif type_of_result_now == 1:
-            print("вывод рисунка")
+            print("вывод рисунка 1")
+        else:
+            print("вывод рисунка 2")
     else:
         print("В данный момент функция отключена")
 
