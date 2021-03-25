@@ -13,6 +13,11 @@ type_of_elem = ["стержень", "пружина", "удалить"]
 node_data_copy = [0, 0]
 elem_data_copy = [1, 0]
 
+matrix_calculated = False
+approximation_calculated = False
+
+type_of_result_now = -1
+
 ar_of_axis = [110, 260, 175]   # главная ось, второстепенная, для сил
 ar_of_colors = ["#C48D55", "#3D5A8C", "#7F2C56", "#63893C"]   # ось, контур, заделки, силы
 ar_of_font_colors = ["black", "#3D5A8C", "#557EC1", "#63893C", "#999999"]   # кнопки, жёсткость, доб.элем., силы, серый
@@ -30,7 +35,7 @@ for k in range(9):
 # ar_of_data[3] ar_of_elements2        # элементы = -//- ось 1
 # ar_of_data[4] ar_of_x_of_nodes       # узлы = координаты Х узлов  (?..?)
 # ar_of_data[5] ar_of_node_forces      # узлы = 0 - пусто, (1..99) - сила F вправо, (-99..-1) - сила F влево
-# ar_of_data[6] ar_of_num_of_nodes     # узлы = номера узлов нижней оси по порядку создания (3..22)
+# ar_of_data[6] ar_of_num_of_nodes     # узлы = номера узлов нижней оси по порядку создания (3..21)
 # ar_of_data[7] ar_of_num_of_elements  # элементы = номера элементов нижней оси по порядку создания (2..20)
 # ar_of_data[8] ar_of_len_of_elements  # элементы = (1..5) - длины элементов оси 0 (на оси 1 все длины 1)
 
@@ -48,7 +53,8 @@ for k in range(8):
 # ar_of_buttons[7]    # кнопки добавления элементов (0..10)
 
 
-output_matrix = []   # [0] - сама таблица, [1..4] - холсты
+output_matrix = []         # [0] - сама таблица, [1..4] - холсты
+pixel_displacements = []   # масштабированные смещения узлов в пикселях
 
 lbl_matrix = []   # [0] матрица K, [1] столбец q, [2] столбец f
 for k in range(4):
@@ -97,25 +103,44 @@ def massive_regeneration(el_count):   # el_count = int = int(spin_input_num.get(
         ar_of_data[4].append(ar_of_data[4][-1] + el_length)
 
 
-# функция вычислений, активирующаяся по нажатию "посчитать"
-def calculation():
-    # конвертируем данные для построений в данные для вычислений
-    mm.data_converting(ar_of_data)
-    # после этого в математическом модуле все функции готовы к работе
+# функция составления матриц
+def matrix_calculation():
 
-    # составляем локальные матрицы жёсткости элементов
-    mm.rigidity_matrix_array()
+    global matrix_calculated
 
-    # находим все объекты матричной системы для блока 2
-    mm.common_rigidity_matrix()                    # матрица жёсткости = общий вид, числа
-    mm.node_forces_vector()                        # вектор узловых сил = общий вид, числа
-    mm.node_displacement_vector()                  # вектор перемещений
-    mm.boundary_conditions_matrix()                # матрица жёсткости с гран условиями = общий вид, числа
-    mm.boundary_conditions_forces_vector()         # вектор узловых сил с гран условиями = общий вид, числа
-    mm.boundary_conditions_displacement_vector()   # вектор перемещений с гран условиями
+    # повторяем расчёты только если система изменилась
+    if not matrix_calculated:
+        # конвертируем данные для построений в данные для вычислений
+        mm.data_converting(ar_of_data)
+        # после этого в математическом модуле все функции готовы к работе
 
-    # заполняем систему на основе выбранных параметров
-    create_output_matrix(cmb_calculate1.current(), cmb_calculate2.current())
+        # составляем локальные матрицы жёсткости элементов
+        mm.rigidity_matrix_array()
+
+        # находим все объекты матричной системы для блока 2
+        mm.common_rigidity_matrix()                    # матрица жёсткости = общий вид, числа
+        mm.node_forces_vector()                        # вектор узловых сил = общий вид, числа
+        mm.node_displacement_vector()                  # вектор перемещений
+        mm.boundary_conditions_matrix()                # матрица жёсткости с гран условиями = общий вид, числа
+        mm.boundary_conditions_forces_vector()         # вектор узловых сил с гран условиями = общий вид, числа
+        mm.boundary_conditions_displacement_vector()   # вектор перемещений с гран условиями
+
+        matrix_calculated = False
+
+
+# функция расчёта обратной матрицы и далее
+def approximation_calculation():
+
+    global approximation_calculated
+
+    # повторяем расчёты только если система изменилась
+    if not approximation_calculated:
+        # получаем необходимые мат. объекты
+        matrix_calculation()
+        # вычисляем вектор перемещений
+        mm.node_displacement_vector_calculate()
+
+        approximation_calculated = False
 
 
 # функция экспорта данных расчётной схемы в файл
@@ -154,79 +179,123 @@ def massive_import():
 
 
 # функция рисования элемента балки
-def create_balk(ind_of_el):   # инд.элем
-    cnv.create_rectangle(ar_of_data[4][ind_of_el], ar_of_axis[0] - (10 + min(ar_of_data[2][ind_of_el], 7) * 3),
-                         ar_of_data[4][ind_of_el + 1], ar_of_axis[0] + (10 + min(ar_of_data[2][ind_of_el], 7) * 3),
-                         outline=ar_of_colors[1], width=2, tag=f"balk_0_{ind_of_el}")
+def create_balk(ind_of_el, canvas, color, width):   # инд.элем
+    canvas.create_rectangle(ar_of_data[4][ind_of_el], ar_of_axis[0] - (10 + min(ar_of_data[2][ind_of_el], 7) * 3),
+                            ar_of_data[4][ind_of_el + 1], ar_of_axis[0] + (10 + min(ar_of_data[2][ind_of_el], 7) * 3),
+                            outline=color, width=width, tag=f"balk_0_{ind_of_el}")
+
+
+# функция рисования деформированного элемента балки
+def create_deformed_balk(ind_of_el, canvas, color, width):   # инд.элем
+    canvas.create_rectangle(ar_of_data[4][ind_of_el] + pixel_displacements[ind_of_el],
+                            ar_of_axis[0] - (10 + min(ar_of_data[2][ind_of_el], 7) * 3),
+                            ar_of_data[4][ind_of_el+1] + pixel_displacements[ind_of_el+1],
+                            ar_of_axis[0] + (10 + min(ar_of_data[2][ind_of_el], 7) * 3),
+                            outline=color, width=width, tag=f"def_balk_0_{ind_of_el}")
 
 
 # функция рисования пружины длины L из левого узла
-def create_spring(ind_of_axis, ind_of_el, h=15):  # инд. оси, инд. элем, высота точек пружины над осью
+def create_spring(ind_of_axis, ind_of_el, canvas, color, width, h=15):  # инд. оси, инд. элем, высота точек пружины
     x_beg = ar_of_data[4][ind_of_el]
     x_end = ar_of_data[4][ind_of_el + 1]
     y_axis = ar_of_axis[ind_of_axis]
     spr_width = x_end - x_beg
-    cnv.create_line((x_beg, y_axis), (round(x_beg + 0.2 * spr_width), y_axis),
-                    (round(x_beg + 0.25 * spr_width), y_axis - h), (round(x_beg + 0.35 * spr_width), y_axis + h),
-                    (round(x_beg + 0.45 * spr_width), y_axis - h), (round(x_beg + 0.55 * spr_width), y_axis + h),
-                    (round(x_beg + 0.65 * spr_width), y_axis - h), (round(x_beg + 0.75 * spr_width), y_axis + h),
-                    (round(x_beg + 0.8 * spr_width), y_axis), (x_beg + spr_width, y_axis),
-                    width=2, fill=ar_of_colors[1], tag=f"spring_{ind_of_axis}_{ind_of_el}")
+    canvas.create_line((x_beg, y_axis), (round(x_beg + 0.2 * spr_width), y_axis),
+                       (round(x_beg + 0.25 * spr_width), y_axis - h), (round(x_beg + 0.35 * spr_width), y_axis + h),
+                       (round(x_beg + 0.45 * spr_width), y_axis - h), (round(x_beg + 0.55 * spr_width), y_axis + h),
+                       (round(x_beg + 0.65 * spr_width), y_axis - h), (round(x_beg + 0.75 * spr_width), y_axis + h),
+                       (round(x_beg + 0.8 * spr_width), y_axis), (x_beg + spr_width, y_axis),
+                       width=width, fill=color, tag=f"def_spring_{ind_of_axis}_{ind_of_el}")
     r = 2   # радиус точки узла
-    cnv.create_oval(x_beg - r, y_axis - r,
-                    x_beg + r, y_axis + r,
-                    width=4, outline=ar_of_colors[1], tag=f"spring_{ind_of_axis}_{ind_of_el}")
-    cnv.create_oval(x_beg + spr_width - r, y_axis - r,
-                    x_beg + spr_width + r, y_axis + r,
-                    width=4, outline=ar_of_colors[1], tag=f"spring_{ind_of_axis}_{ind_of_el}")
+    canvas.create_oval(x_beg - r, y_axis - r,
+                       x_beg + r, y_axis + r,
+                       width=width * 2, outline=color, tag=f"def_spring_{ind_of_axis}_{ind_of_el}")
+    canvas.create_oval(x_beg + spr_width - r, y_axis - r,
+                       x_beg + spr_width + r, y_axis + r,
+                       width=width * 2, outline=color, tag=f"def_spring_{ind_of_axis}_{ind_of_el}")
+
+
+# функция рисования деформированной пружины длины L из левого узла
+def create_deformed_spring(ind_of_axis, ind_of_el, canvas, color, width, h=15):  # инд. оси, инд. элем, холст, цвет
+    if ind_of_axis == 0:
+        pix_dis_beg = pixel_displacements[ind_of_el]
+        pix_dis_end = pixel_displacements[ind_of_el + 1]
+    else:
+        pix_dis_beg = pixel_displacements[ar_of_data[6][ind_of_el] - 1]
+        pix_dis_end = pixel_displacements[ar_of_data[6][ind_of_el + 1] - 1]
+
+    x_beg = ar_of_data[4][ind_of_el] + pix_dis_beg
+    x_end = ar_of_data[4][ind_of_el + 1] + pix_dis_end
+    y_axis = ar_of_axis[ind_of_axis]
+    spr_width = x_end - x_beg
+    canvas.create_line((x_beg, y_axis), (round(x_beg + 0.2 * spr_width), y_axis),
+                       (round(x_beg + 0.25 * spr_width), y_axis - h), (round(x_beg + 0.35 * spr_width), y_axis + h),
+                       (round(x_beg + 0.45 * spr_width), y_axis - h), (round(x_beg + 0.55 * spr_width), y_axis + h),
+                       (round(x_beg + 0.65 * spr_width), y_axis - h), (round(x_beg + 0.75 * spr_width), y_axis + h),
+                       (round(x_beg + 0.8 * spr_width), y_axis), (x_beg + spr_width, y_axis),
+                       width=width, fill=color, tag=f"spring_{ind_of_axis}_{ind_of_el}")
+    r = 2   # радиус точки узла
+    canvas.create_oval(x_beg - r, y_axis - r,
+                       x_beg + r, y_axis + r,
+                       width=4, outline=color, tag=f"spring_{ind_of_axis}_{ind_of_el}")
+    canvas.create_oval(x_beg + spr_width - r, y_axis - r,
+                       x_beg + spr_width + r, y_axis + r,
+                       width=4, outline=color, tag=f"spring_{ind_of_axis}_{ind_of_el}")
 
 
 # функция рисования заделки
-def create_fixation(ind_of_axis, ind_of_node):  # инд. оси, инд. узла
+def create_fixation(ind_of_axis, ind_of_node, canvas, width):  # инд. оси, инд. узла
     if ind_of_axis == 0:
         if ind_of_node == 0:   # левый узел, значит берём инфу из правого элемента
-            fixation_drawing(ind_of_axis, ind_of_node, -1)
+            fixation_drawing(canvas, width, ind_of_axis, ind_of_node, -1)
         elif ind_of_node == len(ar_of_data[0]) - 1:   # правый узел, значит берём инфу из левого элемента
-            fixation_drawing(ind_of_axis, ind_of_node, 1)
+            fixation_drawing(canvas, width, ind_of_axis, ind_of_node, 1)
     else:
         if ind_of_node == 0:
-            fixation_drawing(ind_of_axis, ind_of_node, -1)
+            fixation_drawing(canvas, width, ind_of_axis, ind_of_node, -1)
         elif ind_of_node == len(ar_of_data[1]) - 1:
-            fixation_drawing(ind_of_axis, ind_of_node, 1)
+            fixation_drawing(canvas, width, ind_of_axis, ind_of_node, 1)
         else:
             if ar_of_data[3][ind_of_node - 1] == 0:
-                fixation_drawing(ind_of_axis, ind_of_node, -1)
+                fixation_drawing(canvas, width, ind_of_axis, ind_of_node, -1)
             else:
-                fixation_drawing(ind_of_axis, ind_of_node, 1)
+                fixation_drawing(canvas, width, ind_of_axis, ind_of_node, 1)
 
 
 # функция рисования линий заделки
-def fixation_drawing(ind_of_axis=0, ind_of_node=0, n=1):   # инд.оси, инд.узла, normal(ориентац) = left "-1"/right "1"
+def fixation_drawing(canvas, width, ind_of_axis=0, ind_of_node=0, n=1):   # i.оси, i.узла, normal=left "-1"/right "1"
     # если n=1, то max=1 и смотрим левый элемент, если n=-1, то max=0 и смотрим элемент с индексом узла
     ef_info = ar_of_data[ind_of_axis + 2][ind_of_node - 1 * max(n, 0)]
     fix_half_line = (10 + min(max(ef_info, 1), 7) * 3) + 7
 
-    cnv.create_line(ar_of_data[4][ind_of_node], ar_of_axis[ind_of_axis] - fix_half_line,
-                    ar_of_data[4][ind_of_node], ar_of_axis[ind_of_axis] + fix_half_line,
-                    width=2, fill=ar_of_colors[2], tag=f"fixation_{ind_of_axis}_{ind_of_node}")
+    canvas.create_line(ar_of_data[4][ind_of_node], ar_of_axis[ind_of_axis] - fix_half_line,
+                       ar_of_data[4][ind_of_node], ar_of_axis[ind_of_axis] + fix_half_line,
+                       width=width, fill=ar_of_colors[2], tag=f"fixation_{ind_of_axis}_{ind_of_node}")
 
     count_of_spaces = (fix_half_line * 2) // 10
     count_of_lines = count_of_spaces + 1
     new_space_length = (fix_half_line * 2 - 4) // count_of_spaces
 
     for i in range(count_of_lines):
-        cnv.create_line(ar_of_data[4][ind_of_node],
-                        (ar_of_axis[ind_of_axis] + fix_half_line * n - new_space_length * i * n),
-                        ar_of_data[4][ind_of_node] + 10 * n,
-                        (ar_of_axis[ind_of_axis] + fix_half_line * n - new_space_length * i * n) - 10 * n,
-                        width=2, fill=ar_of_colors[2], tag=f"fixation_{ind_of_axis}_{ind_of_node}")
+        canvas.create_line(ar_of_data[4][ind_of_node],
+                           (ar_of_axis[ind_of_axis] + fix_half_line * n - new_space_length * i * n),
+                           ar_of_data[4][ind_of_node] + 10 * n,
+                           (ar_of_axis[ind_of_axis] + fix_half_line * n - new_space_length * i * n) - 10 * n,
+                           width=2, fill=ar_of_colors[2], tag=f"fixation_{ind_of_axis}_{ind_of_node}")
 
 
 # функция рисования линии соединение я другой осью
-def create_connection(ind_of_node, del1=0):   # инд.узла, сколько пикселей торчит вниз после оси 1
-    cnv.create_line(ar_of_data[4][ind_of_node], ar_of_axis[0],
-                    ar_of_data[4][ind_of_node], ar_of_axis[1] + del1,
-                    width=2, fill=ar_of_colors[1], tag=f"connection_0_{ind_of_node}")
+def create_connection(ind_of_node, canvas, color, width, del1=0):   # инд.узла, сколько пикселей торчит вниз после оси 1
+    canvas.create_line(ar_of_data[4][ind_of_node], ar_of_axis[0],
+                       ar_of_data[4][ind_of_node], ar_of_axis[1] + del1,
+                       width=width, fill=color, tag=f"connection_0_{ind_of_node}")
+
+
+# функция рисования линии соединение я другой осью для деформированной системы
+def create_deformed_connection(ind_of_node, canvas, color, width, del1=0):  # инд.узла, холст, цвет
+    canvas.create_line(ar_of_data[4][ind_of_node] + pixel_displacements[ind_of_node], ar_of_axis[0],
+                       ar_of_data[4][ind_of_node] + pixel_displacements[ind_of_node], ar_of_axis[1] + del1,
+                       width=width, fill=color, tag=f"def_connection_0_{ind_of_node}")
 
 
 # функция рисования векторов сил
@@ -345,18 +414,18 @@ def create_half_curly(canvas, x_st, y_st, half, width, color):  # родител
     # коорд У начала блока, половина=top'1'/bottom'-1'
 
     if half == 1:
-        canvas.create_arc((x_st, y_st), (x_st - 10, y_st + 20), start=90, extent=90,
+        canvas.create_arc((x_st, y_st), (x_st - 10, y_st + 40), start=90, extent=90,
                           width=width, outline=color, style=tk.ARC, tag="brackets")
-        canvas.create_arc((x_st - 10, y_st + 100), (x_st - 20, y_st + 120), extent=-90,
+        canvas.create_arc((x_st - 10, y_st + 110), (x_st - 20, y_st + 150), extent=-90,
                           width=width, outline=color, style=tk.ARC, tag="brackets")
-        canvas.create_line((x_st - 10, y_st + 10), (x_st - 10, y_st + 110), width=width,
+        canvas.create_line((x_st - 10, y_st + 20), (x_st - 10, y_st + 130), width=width,
                            fill=color, tag="brackets")
     else:
-        canvas.create_arc((x_st, y_st), (x_st + 10, y_st + 20), extent=90,
+        canvas.create_arc((x_st, y_st), (x_st + 10, y_st + 40), extent=90,
                           width=width, outline=color, style=tk.ARC, tag="brackets")
-        canvas.create_arc((x_st + 10, y_st + 100), (x_st + 20, y_st + 120), start=180, extent=90,
+        canvas.create_arc((x_st + 10, y_st + 110), (x_st + 20, y_st + 150), start=180, extent=90,
                           width=width, outline=color, style=tk.ARC, tag="brackets")
-        canvas.create_line((x_st + 10, y_st + 10), (x_st + 10, y_st + 110), width=width,
+        canvas.create_line((x_st + 10, y_st + 20), (x_st + 10, y_st + 130), width=width,
                            fill=color, tag="brackets")
 
 
@@ -365,12 +434,12 @@ def create_bracket(canvas, b_type, x, n, width, color):  # родительск�
     # координата Х начала, normal=open'1'/close'-1', ширина линии, цвет линии
 
     if b_type == "square":
-        canvas.create_line((x, 1), (x - 6 * n, 1), (x - 6 * n, 240), (x, 240),
+        canvas.create_line((x, 1), (x - 6 * n, 1), (x - 6 * n, 300), (x, 300),
                            width=width, fill=color, tag="brackets")
 
     else:
         create_half_curly(canvas, x, 1, n, width, color)
-        create_half_curly(canvas, x - 20 * n, 120, (-1) * n, width, color)
+        create_half_curly(canvas, x - 20 * n, 150, (-1) * n, width, color)
 
 
 # функция построения системы уравнений в матричном виде для решаемой задачи
@@ -405,7 +474,7 @@ def create_output_matrix(set1, set2):  # листбокс1 (0 - без гран.
     output_matrix[0].place(anchor='center', relx=0.5, rely=0.5)
 
     for i in range(4):
-        output_matrix.append(tk.Canvas(master=output_matrix[0], height=245, bg="white", relief=tk.FLAT, borderwidth=-2,
+        output_matrix.append(tk.Canvas(master=output_matrix[0], height=302, bg="white", relief=tk.FLAT, borderwidth=-2,
                                        width=25 if (2 < i) or (i < 1) else 80 if i == 2 else 40))
         output_matrix[-1].grid(row=0, column=(len(f_vector) - 1 + 2*i) if i != 0 else 0,
                                rowspan=len(f_vector), padx=0, pady=0)
@@ -414,27 +483,27 @@ def create_output_matrix(set1, set2):  # листбокс1 (0 - без гран.
     for i in range(len(f_vector)):
         lbl_matrix[0].append([])
         for j in range(len(f_vector)):
-            lbl_matrix[0][i].append(tk.Label(master=output_matrix[0], font=('Courier', max(21-len(f_vector), 4)),
+            lbl_matrix[0][i].append(tk.Label(master=output_matrix[0], font=('Courier', max(23-len(f_vector), 4)),
                                              fg=ar_of_font_colors[4] if str(k_matrix[i][j])[0] == '0' else
                                              ar_of_font_colors[1], bg="white",
                                              text=f'{k_matrix[i][j]:4.1f}' if type(k_matrix[i][j]) != str else
                                              f' {k_matrix[i][j]} ' if k_matrix[i][j] == '0' else k_matrix[i][j]))
-            lbl_matrix[0][i][j].grid(row=i, column=j+1, padx=((21-len(f_vector))//5)+1, pady=0,
+            lbl_matrix[0][i][j].grid(row=i, column=j+1, padx=((23-len(f_vector))//5)+1, pady=0,
                                      sticky="nsew" if set2 == 0 else "e")
 
     # заполняем таблицу лейблами векторов q и f
     for i in range(len(f_vector)):
-        lbl_matrix[1].append(tk.Label(master=output_matrix[0], font=('Courier', max(21-len(f_vector), 4)), bg="white",
+        lbl_matrix[1].append(tk.Label(master=output_matrix[0], font=('Courier', max(23-len(f_vector), 4)), bg="white",
                                       fg=ar_of_font_colors[0] if q_vector[i] != '0' else ar_of_font_colors[4],
                                       text=q_vector[i]))
-        lbl_matrix[1][i].grid(row=i, column=len(f_vector)+2, padx=((21-len(f_vector))//7)+1, pady=0)
+        lbl_matrix[1][i].grid(row=i, column=len(f_vector)+2, padx=((23-len(f_vector))//7)+1, pady=0)
 
     for i in range(len(f_vector)):
-        lbl_matrix[2].append(tk.Label(master=output_matrix[0], font=('Courier', max(21-len(f_vector), 4)), bg="white",
+        lbl_matrix[2].append(tk.Label(master=output_matrix[0], font=('Courier', max(23-len(f_vector), 4)), bg="white",
                                       fg=ar_of_font_colors[4] if str(f_vector[i])[0] == '0' else ar_of_font_colors[3],
                                       text=f'{f_vector[i]:4.1f}' if type(f_vector[i]) != str else
                                       f' {f_vector[i]} ' if f_vector[i] == '0' else f_vector[i]))
-        lbl_matrix[2][i].grid(row=i, column=len(f_vector)+4, padx=((21-len(f_vector))//7)+1, pady=0,
+        lbl_matrix[2][i].grid(row=i, column=len(f_vector)+4, padx=((23-len(f_vector))//7)+1, pady=0,
                               sticky="nsew" if set2 == 0 else "e")
 
     # дополнительное оформление граничных условий
@@ -457,12 +526,221 @@ def create_output_matrix(set1, set2):  # листбокс1 (0 - без гран.
     create_bracket(output_matrix[4], "curly", 0, -1, 2, ar_of_font_colors[4])
 
     # рисуем равно
-    output_matrix[3].create_line((32, 115), (48, 115), width=2, fill=ar_of_font_colors[4], tag="brackets")
-    output_matrix[3].create_line((32, 125), (48, 125), width=2, fill=ar_of_font_colors[4], tag="brackets")
+    output_matrix[3].create_line((32, 145), (48, 145), width=2, fill=ar_of_font_colors[4], tag="brackets")
+    output_matrix[3].create_line((32, 155), (48, 155), width=2, fill=ar_of_font_colors[4], tag="brackets")
+
+
+# функция вывода результатов в виде текста или графиков
+def output_result(set1, accuracy):  # листбокс (0=данные, 1=графики, 2=деформ.сист.), количество отрезков (1..10)
+    global type_of_result_now
+
+    # удаляем предыдущий элемент вывода
+    global area_box
+    global output_area
+    area_box.destroy()
+
+    pixel_displacements.clear()
+
+    # вычисляем будущие координаты точек Х в зависимости от выбранной точности
+    x_array = []
+    for i in range(accuracy):
+        x_array.append(i / accuracy)
+    x_array.append(1.0)
+
+    if set1 == 0:  # текст
+        type_of_result_now = 0
+
+        area_box = tk.Frame(master=box31, relief=tk.FLAT, borderwidth=0)
+        area_box.place(anchor="n", relx=0.5, y=61)
+
+        output_area = tk.Text(master=area_box, width=101, height=20, relief=tk.RIDGE, bg="white", font=('Courier', 12),
+                              borderwidth=3)
+        output_area.pack(side=tk.LEFT)
+
+        scroll = tk.Scrollbar(master=area_box, command=output_area.yview)
+        scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
+        output_area.config(yscrollcommand=scroll.set)
+
+        nodes = 0
+        elements = 0
+        fixations = 0
+        connections = 0
+        balks = 0
+        springs = 0
+        extra = 0
+
+        for i in range(2):
+            for j in range(len(ar_of_data[i])):
+                if ar_of_data[i][j] != 0:
+                    nodes += 1
+                if ar_of_data[i][j] == 2:
+                    extra += 1
+                if (ar_of_data[i][j] == 2) and ((j != 0) and (j != len(ar_of_data[i]) - 1)):
+                    connections += 1
+                elif ar_of_data[i][j] == 3:
+                    fixations += 1
+
+        for i in range(2):
+            for j in ar_of_data[2 + i]:
+                if j != 0:
+                    elements += 1
+                if j > 0:
+                    balks += 1
+                elif j < 0:
+                    springs += 1
+
+        output_area.insert("1.0", "\n\t" + "Информация о системе:".center(48, ' ') + "\n")
+        output_area.insert(tk.END,
+                           "\n" + f"\t      Число узлов:{(nodes-(extra//2)):3.0f}     Число элементов:{elements:3.0f}")
+        output_area.insert(tk.END,
+                           "\n" + f"\t          Заделок:{fixations:3.0f}            Стержней:{balks:3.0f}")
+        output_area.insert(tk.END,
+                           "\n" + f"\t   3-х соединений:{(connections // 2):3.0f}              Пружин:{springs:3.0f}")
+
+        # аппроксимакция перемещений
+        output_area.insert(tk.END, "\n\n\n\n\t" + "Аппроксимация перемещений:".center(48, ' '))
+        for i in range(len(mm.fem_data[5])):
+            output_area.insert(tk.END,
+                               "\n\n\t   " + f"Элемент{(i+1):3.0f} - " \
+                               + f"{'стержень' if mm.fem_data[5][i] == 'EF' else ' пружина'}," \
+                               + f"{(mm.fem_data[3][i] * mm.fem_data[4][i] if mm.fem_data[5][i] == 'EF' else mm.fem_data[3][i]):3.0f}" \
+                               + f"{'EF' if mm.fem_data[5][i] == 'EF' else 'c '}," \
+                               + f"{mm.fem_data[4][i]:2.0f}L:")
+            for j in range(len(x_array)):
+                u = [mm.node_displacement_vector_values[mm.fem_data[2][i][0]],
+                     mm.node_displacement_vector_values[mm.fem_data[2][i][1]]]
+                output_area.insert(tk.END,
+                                   "\n\t      " + f"u({x_array[j]:4.2f}) =" \
+                                   + f"{mm.element_approximation(x_array[j], u):7.2f}")
+
+        # аппроксимакция усилий
+        output_area.insert(tk.END, "\n\n\n\n\t" + "Аппроксимация усилий:".center(48, ' '))
+        for i in range(len(mm.fem_data[5])):
+            output_area.insert(tk.END,
+                               "\n\n\t   " + f"Элемент{(i+1):3.0f} - " \
+                               + f"{'стержень' if mm.fem_data[5][i] == 'EF' else ' пружина'}," \
+                               + f"{(mm.fem_data[3][i] * mm.fem_data[4][i] if mm.fem_data[5][i] == 'EF' else mm.fem_data[3][i]):3.0f}" \
+                               + f"{'EF' if mm.fem_data[5][i] == 'EF' else 'c '}," \
+                               + f"{mm.fem_data[4][i]:2.0f}L:")
+            u = [mm.node_displacement_vector_values[mm.fem_data[2][i][0]],
+                 mm.node_displacement_vector_values[mm.fem_data[2][i][1]]]
+            output_area.insert(tk.END,
+                               "\n\t      " + f"N =" \
+                               + f"{mm.force_approximation(u, mm.fem_data[4][i], mm.fem_data[3][i]):7.2f}")
+        output_area.insert(tk.END, "\n")
+
+    elif set1 == 1:  # график
+        type_of_result_now = 1
+
+        area_box = tk.Frame(master=box31, relief=tk.FLAT, borderwidth=0)
+        area_box.place(anchor="n", relx=0.5, y=59)
+
+        output_area = tk.Canvas(master=area_box, width=1028, height=362, relief=tk.RIDGE, bg="white", borderwidth=3)
+        output_area.pack()
+
+        print("Данная функция временно недоступка")
+
+    else:  # деформированное состояние системы
+        type_of_result_now = 2
+
+        area_box = tk.Frame(master=box31, relief=tk.FLAT, borderwidth=0)
+        area_box.place(anchor="n", relx=0.5, y=59)
+
+        output_area = tk.Canvas(master=area_box, width=1028, height=362, relief=tk.RIDGE, bg="white", borderwidth=3)
+        output_area.pack()
+
+        # массив с информацией об относительной величине деформаций элментов
+        element_deformations = []
+        for i in range(len(mm.node_displacement_vector_values) - 1):
+            element_deformations.append(mm.node_displacement_vector_values[mm.fem_data[2][i][1]] \
+                                        - mm.node_displacement_vector_values[mm.fem_data[2][i][0]])
+
+        pos_def = max(*element_deformations, 0)
+        neg_def = min(*element_deformations, 0)
+        max_deformation = max(pos_def, abs(neg_def))
+
+        norm_factor1 = 99 / max_deformation
+        scaled_deformations = []
+        for i in element_deformations:
+            scaled_deformations.append(round(abs(i * norm_factor1)))
+
+        # нормируем смещения узлов так, что максимальное смещение = 0.8L и получаем массив со смещениями в пикселях
+        pos_dis = max(*mm.node_displacement_vector_values, 0)
+        neg_dis = min(*mm.node_displacement_vector_values, 0)
+        max_displacement = max(pos_dis, abs(neg_dis))
+
+        el_length = ar_of_data[4][1] - ar_of_data[4][0]
+
+        norm_factor2 = 0.8 / max_displacement
+        normed_displacements = []
+        for i in mm.node_displacement_vector_values:
+            normed_displacements.append(i * norm_factor2)
+            pixel_displacements.append(round((i * norm_factor2) * el_length))
+
+    # # строим смещённую ось 0
+    # del0 = 12 if ar_of_data[0][0] == 3 else 0
+    # del1 = 12 if ar_of_data[0][-1] == 3 else 0
+    # output_area.create_line(ar_of_data[4][0]+pixel_displacements[0] - (10 + del0), ar_of_axis[0],
+    #                         ar_of_data[4][-1]+pixel_displacements[len(ar_of_data[4])-1] + (10+del1), ar_of_axis[0],
+    #                         dash=(30, 20), fill=ar_of_colors[0], tag="axis")
+
+        # строим ось 0
+        del0 = 12 if ar_of_data[0][0] == 3 else 0
+        del1 = 12 if ar_of_data[0][-1] == 3 else 0
+        output_area.create_line(ar_of_data[4][0] - (10 + del0), ar_of_axis[0],
+                                ar_of_data[4][len(ar_of_data[4]) - 1] + (10 + del1), ar_of_axis[0],
+                                dash=(30, 20), fill=ar_of_font_colors[4], tag="axis")
+
+        # строим первоначальную систему на фоне для сравнения
+
+        # строим элементы (значение > 0 - балка, иначе пружина)
+        for i in range(len(ar_of_data[2])):
+            if ar_of_data[2][i] > 0:
+                create_balk(i, output_area, ar_of_font_colors[4], 1)
+            elif ar_of_data[2][i] < 0:
+                create_spring(0, i, output_area, ar_of_font_colors[4], 1)
+        for i in range(len(ar_of_data[2])):
+            if ar_of_data[3][i] < 0:
+                create_spring(1, i, output_area, ar_of_font_colors[4], 1)
+
+        # строим закрепления узлов (значение 2 - подсоединение, 3 - заделка)
+        for i in range(len(ar_of_data[0])):
+            if ar_of_data[0][i] == 2:
+                create_connection(i, output_area, ar_of_font_colors[4], 1)
+
+        # строим деформированную систему более жирным
+
+        # строим деформированные элементы (значение > 0 - балка, иначе пружина)
+        for i in range(len(ar_of_data[2])):
+            if ar_of_data[2][i] > 0:
+                create_deformed_balk(i, output_area, f'#{scaled_deformations[i]:02.0f}00BF', 3)
+            elif ar_of_data[2][i] < 0:
+                create_deformed_spring(0, i, output_area, f'#{scaled_deformations[i]:02.0f}00BF', 3)
+        for i in range(len(ar_of_data[2])):
+            if ar_of_data[3][i] < 0:
+                create_deformed_spring(1, i, output_area, f'#{scaled_deformations[ar_of_data[7][i]-1]:02.0f}00BF', 3)
+
+        # строим смещённые закрепления узлов (значение 2 - подсоединение, 3 - заделка)
+        for i in range(len(ar_of_data[0])):
+            if ar_of_data[0][i] == 2:
+                create_deformed_connection(i, output_area, f'#{scaled_deformations[i]:02.0f}00BF', 3)
+            if ar_of_data[0][i] == 3:
+                create_fixation(0, i, output_area, 3)
+        for i in range(len(ar_of_data[0])):
+            if ar_of_data[1][i] == 3:
+                create_fixation(1, i, output_area, 3)
 
 
 # функция очищения и рисования расчётной схемы
 def element_full_recreating(el_count):   # кол-во элементов = len(ar_of_data[2])
+
+    # изменили систему и расчёты нужно проводить заново
+    global matrix_calculated
+    global approximation_calculated
+    matrix_calculated = False
+    approximation_calculated = False
+
     # очищаем весь холст
     cnv.delete("all")
     for j in range(8):
@@ -483,22 +761,22 @@ def element_full_recreating(el_count):   # кол-во элементов = len(
     # строим элементы (значение > 0 - балка, иначе пружина)
     for i in range(el_count):
         if ar_of_data[2][i] > 0:
-            create_balk(i)
+            create_balk(i, cnv, ar_of_colors[1], 2)
         elif ar_of_data[2][i] < 0:
-            create_spring(0, i)
+            create_spring(0, i, cnv, ar_of_colors[1], 2)
     for i in range(el_count):
         if ar_of_data[3][i] < 0:
-            create_spring(1, i)
+            create_spring(1, i, cnv, ar_of_colors[1], 2)
 
     # строим закрепления узлов (значение 2 - подсоединение, 3 - заделка)
     for i in range(el_count + 1):
         if ar_of_data[0][i] == 2:
-            create_connection(i)
+            create_connection(i, cnv, ar_of_colors[1], 2)
         if ar_of_data[0][i] == 3:
-            create_fixation(0, i)
+            create_fixation(0, i, cnv, 2)
     for i in range(el_count + 1):
         if ar_of_data[1][i] == 3:
-            create_fixation(1, i)
+            create_fixation(1, i, cnv, 2)
 
     # размещаем кнопки узлов
     for i in range(el_count + 1):
@@ -749,7 +1027,8 @@ def node_click_event(ind_of_axis=0, ind_of_node=0, num=1):
     nd_opt_window = tk.Tk()
     nd_opt_window.resizable(width=False, height=False)
     nd_opt_window.title(
-        f'Свойства узла {num}   -   {type_of_node[ar_of_data[ind_of_axis][ind_of_node] - 1]},  {ar_of_data[5][ind_of_node]} F')
+        f'Свойства узла {num}   -   {type_of_node[ar_of_data[ind_of_axis][ind_of_node] - 1]},  '\
+        + f'{ar_of_data[5][ind_of_node]} F')
     nd_opt_window.geometry('580x360')
 
     lbl_title1 = tk.Label(master=nd_opt_window, text="Тип узла:", font=('Courier', 11))
@@ -864,7 +1143,9 @@ def element_click_event(ind_of_axis=0, ind_of_elem=0, num=1):
     el_opt_window = tk.Tk()
     el_opt_window.resizable(width=False, height=False)
     el_opt_window.title(
-        f'Свойства узла {num}   -   {"стержень" if ar_of_data[ind_of_axis+2][ind_of_elem] > 0 else "пружина"},  {abs(ar_of_data[ind_of_axis+2][ind_of_elem])}{" EF" if ar_of_data[ind_of_axis+2][ind_of_elem] > 0 else " c"}')
+        f'Свойства узла {num}   -   {"стержень" if ar_of_data[ind_of_axis+2][ind_of_elem] > 0 else "пружина"},  '\
+        + f'{abs(ar_of_data[ind_of_axis+2][ind_of_elem])}'\
+        + f'{" EF" if ar_of_data[ind_of_axis+2][ind_of_elem] > 0 else " c"}')
     el_opt_window.geometry('580x360')
 
     lbl_title1 = tk.Label(master=el_opt_window, text="Тип элемента:", font=('Courier', 11))
@@ -966,8 +1247,12 @@ def btn_input_num_event():
 
     if btn_calculate['state'] == 'disabled':
         btn_calculate.config(state="normal", cursor="hand2")
+    if btn_result_output['state'] == 'disabled':
+        btn_result_output.config(state="normal", cursor="hand2")
     if btn_export['state'] == 'disabled':
         btn_export.config(state="normal", cursor="hand2")
+
+    window1.title("Методомконечныхэлементоврешателенатор 3000")
 
 
 # функция обработки нажатия кнопки импорта
@@ -980,6 +1265,8 @@ def btn_input_imp_event():
         btn_input_num.config(state="normal", cursor="hand2")
     if btn_calculate['state'] == 'disabled':
         btn_calculate.config(state="normal", cursor="hand2")
+    if btn_result_output['state'] == 'disabled':
+        btn_result_output.config(state="normal", cursor="hand2")
     if btn_export['state'] == 'disabled':
         btn_export.config(state="normal", cursor="hand2")
 
@@ -989,9 +1276,42 @@ def export_event():
     massive_export()
 
 
-# функция обработки нажатия кнопки Посчитать из блока 2
+# функция обработки нажатия кнопки Показать из блока 2
 def btn_calculate_event():
-    calculation()
+    # создаём все мат. объекты и заполняем
+    matrix_calculation()
+
+    # заполняем таблицу на основе выбранных параметров
+    create_output_matrix(cmb_calculate1.current(), cmb_calculate2.current())
+
+
+# функция обработки нажатия кнопки Показать из блока 3
+def btn_result_output_event():
+    # находим аппроксимации
+    approximation_calculation()
+
+    # выводим тип данных, который выбрал пользователь
+    output_result(cmb_result.current(), int(spin_result_accuracy.get()) + 1)
+
+    if btn_result_export['state'] == 'disabled':
+        btn_result_export.config(state="normal", cursor="hand2")
+
+
+# функция экспорта результатов расчёта в файл
+def btn_result_export_event():
+    if type_of_result_now == 0:
+        filepath = asksaveasfilename(defaultextension="txt", initialdir="files/",
+                                     filetypes=[("Текстовые файлы", "*.txt"), ("Все файлы", "*.*")],)
+        if not filepath:
+            return
+        if type_of_result_now == 0:
+            text = output_area.get("1.0", tk.END)
+            with open(filepath, "w", encoding="utf8") as output_file:
+                output_file.write(text)
+        elif type_of_result_now == 1:
+            print("вывод рисунка")
+    else:
+        print("В данный момент функция отключена")
 
 
 # coded by QWertyIX
@@ -1095,10 +1415,10 @@ if __name__ == '__main__':
         master=box20,
         text=" Вычисления.",
         font=('Courier', 12, 'bold'),
-        relief=tk.FLAT, borderwidth=0, height=1, cursor='hand2')  # , command=lambda: block_click_event(box21, 346))
+        relief=tk.FLAT, borderwidth=0, height=1, cursor='hand2')  # , command=lambda: block_click_event(box21, 440))
     btn2_title.place(anchor="nw", relx=0, rely=0)
-    btn2_title.bind('<Button 1>', lambda event: block_click_event(event, box=box21, h=346))
-    btn2_title.bind("<Button 3>", lambda event: block_click_event(event, box=box21, h=346))
+    btn2_title.bind('<Button 1>', lambda event: block_click_event(event, box=box21, h=440))
+    btn2_title.bind("<Button 3>", lambda event: block_click_event(event, box=box21, h=440))
 
     lbl2_info = tk.Label(
         master=box20,
@@ -1130,7 +1450,7 @@ if __name__ == '__main__':
                               relief=tk.RIDGE, borderwidth=3, command=btn_calculate_event)
     btn_calculate.grid(row=0, column=3, padx=12, pady=0)
 
-    cnv2 = tk.Canvas(master=box21, width=1030, height=270, relief=tk.RIDGE, bg="white", borderwidth=3)
+    cnv2 = tk.Canvas(master=box21, width=1030, height=364, relief=tk.RIDGE, bg="white", borderwidth=3)
     cnv2.place(anchor="n", relx=0.5, y=58)
 
     # продолжение
@@ -1150,10 +1470,10 @@ if __name__ == '__main__':
         master=box30,
         text=" Результаты.",
         font=('Courier', 12, 'bold'),
-        relief=tk.FLAT, borderwidth=0, height=1, cursor='hand2')  # , command=lambda: block_click_event(box31, 346))
+        relief=tk.FLAT, borderwidth=0, height=1, cursor='hand2')  # , command=lambda: block_click_event(box31, 440))
     btn3_title.place(anchor="nw", relx=0, rely=0)
-    btn3_title.bind('<Button 1>', lambda event: block_click_event(event, box=box31, h=346))
-    btn3_title.bind("<Button 3>", lambda event: block_click_event(event, box=box31, h=346))
+    btn3_title.bind('<Button 1>', lambda event: block_click_event(event, box=box31, h=440))
+    btn3_title.bind("<Button 3>", lambda event: block_click_event(event, box=box31, h=440))
 
     lbl3_info = tk.Label(
         master=box30,
@@ -1165,18 +1485,40 @@ if __name__ == '__main__':
     box310 = tk.Frame(master=box31, relief=tk.FLAT, borderwidth=0)
     box310.place(anchor='n', relx=0.5, y=15)
 
-    lbl3_calculate = tk.Label(
+    lbl3_result = tk.Label(
         master=box310,
-        text="Текст блока 3",
+        text="Вывод результатов:",
         font=('Courier', 12))
-    lbl3_calculate.grid(row=0, column=0, padx=12, pady=0)
+    lbl3_result.grid(row=0, column=0, padx=10, pady=0)
 
-    btn_3 = tk.Button(master=box310, text="Показать", width=10, font=('Courier', 10), state='disabled',
-                      relief=tk.RIDGE, borderwidth=3)
-    btn_3.grid(row=0, column=3, padx=12, pady=0)
+    cmb_result = Combobox(master=box310, width=26, font=('Courier', 12), state='readonly',
+                          values=("Данные аппроксимаций", "Графики аппроксимаций", "Деформированное состояние"))
+    cmb_result.current(0)
+    cmb_result.grid(row=0, column=1, padx=10, pady=0)
 
-    cnv3 = tk.Canvas(master=box31, width=1030, height=270, relief=tk.RIDGE, bg="white", borderwidth=3)
-    cnv3.place(anchor="n", relx=0.5, y=58)
+    lbl3_result_accuracy = tk.Label(
+        master=box310,
+        text="с числом разбиений",
+        font=('Courier', 12))
+    lbl3_result_accuracy.grid(row=0, column=2, padx=4, pady=0)
+
+    spin_result_accuracy = tk.Spinbox(master=box310, from_=0, to=10, width=3, justify="center", font=('Courier', 15),
+                                      relief=tk.RIDGE, borderwidth=3)
+    spin_result_accuracy.grid(row=0, column=3, padx=8, pady=0)
+
+    btn_result_output = tk.Button(master=box310, text="Показать", width=10, font=('Courier', 10), state='disabled',
+                                  relief=tk.RIDGE, borderwidth=3, command=btn_result_output_event)
+    btn_result_output.grid(row=0, column=4, padx=8, pady=0)
+
+    btn_result_export = tk.Button(master=box310, text="Экспортировать", width=15, font=('Courier', 10),
+                                  state='disabled', relief=tk.RIDGE, borderwidth=3, command=btn_result_export_event)
+    btn_result_export.grid(row=0, column=5, padx=8, pady=0)
+
+    area_box = tk.Frame(master=box31, relief=tk.FLAT, borderwidth=0)
+    area_box.place(anchor="n", relx=0.5, y=59)
+
+    output_area = tk.Canvas(master=area_box, width=1028, height=362, relief=tk.RIDGE, bg="white", borderwidth=3)
+    output_area.pack()
 
     # продолжение
 
