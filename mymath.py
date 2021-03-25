@@ -124,7 +124,9 @@ def common_rigidity_matrix():
         for j in range(2):
             for k in range(2):
                 common_rigidity_matrix_general[
-                    fem_data[2][i][k]][fem_data[2][i][j]] += rigidity_matrix_general[i][k][j] if common_rigidity_matrix_general[fem_data[2][i][k]][fem_data[2][i][j]] == "" else ("+" + rigidity_matrix_general[i][k][j])
+                    fem_data[2][i][k]][fem_data[2][i][j]] += rigidity_matrix_general[i][k][j] if \
+                    common_rigidity_matrix_general[fem_data[2][i][k]][fem_data[2][i][j]] == "" else \
+                    ("+" + rigidity_matrix_general[i][k][j])
 
     for i in range(len(common_rigidity_matrix_general)):
         for j in range(len(common_rigidity_matrix_general)):
@@ -154,7 +156,8 @@ def node_forces_vector():
 
     for i in range(len(fem_data[2])):  # перебираем элементы
         for j in range(2):
-            node_forces_vector_general[fem_data[2][i][j]] += f"f{i+1}" if node_forces_vector_general[fem_data[2][i][j]] == "" else f"+f{i+1}"
+            node_forces_vector_general[fem_data[2][i][j]] += f"f{i+1}" if \
+                node_forces_vector_general[fem_data[2][i][j]] == "" else f"+f{i+1}"
             # обозначение с указанием начала и конца вектора было f{i+1}{j+1}
 
     for i in fem_data[0]:
@@ -421,5 +424,3 @@ def force_approximation(u, el_length, c):  # u = [перемещ.начала, �
     n = [-1 / el_length, 1 / el_length]
 
     return scalar_multiplication(n, u) * ef
-
-

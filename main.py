@@ -640,31 +640,31 @@ def output_result(set1, accuracy):  # листбокс (0=данные, 1=гра
         output_area.insert(tk.END, "\n\n\n\n\t" + "Аппроксимация перемещений:".center(48, ' '))
         for i in range(len(mm.fem_data[5])):
             output_area.insert(tk.END,
-                               "\n\n\t   " + f"Элемент{(i+1):3.0f} - " \
-                               + f"{'стержень' if mm.fem_data[5][i] == 'EF' else ' пружина'}," \
-                               + f"{(mm.fem_data[3][i] * mm.fem_data[4][i] if mm.fem_data[5][i] == 'EF' else mm.fem_data[3][i]):3.0f}" \
-                               + f"{'EF' if mm.fem_data[5][i] == 'EF' else 'c '}," \
+                               "\n\n\t   " + f"Элемент{(i+1):3.0f} - "
+                               + f"{'стержень' if mm.fem_data[5][i] == 'EF' else ' пружина'},"
+                               + f"{(mm.fem_data[3][i] * mm.fem_data[4][i] if mm.fem_data[5][i] == 'EF' else mm.fem_data[3][i]):3.0f}"
+                               + f"{'EF' if mm.fem_data[5][i] == 'EF' else 'c '},"
                                + f"{mm.fem_data[4][i]:2.0f}L:")
             for j in range(len(x_array)):
                 u = [mm.node_displacement_vector_values[mm.fem_data[2][i][0]],
                      mm.node_displacement_vector_values[mm.fem_data[2][i][1]]]
                 output_area.insert(tk.END,
-                                   "\n\t      " + f"u({x_array[j]:4.2f}) =" \
+                                   "\n\t      " + f"u({x_array[j]:4.2f}) ="
                                    + f"{mm.element_approximation(x_array[j], u):7.2f}")
 
         # аппроксимакция усилий
         output_area.insert(tk.END, "\n\n\n\n\t" + "Аппроксимация усилий:".center(48, ' '))
         for i in range(len(mm.fem_data[5])):
             output_area.insert(tk.END,
-                               "\n\n\t   " + f"Элемент{(i+1):3.0f} - " \
-                               + f"{'стержень' if mm.fem_data[5][i] == 'EF' else ' пружина'}," \
-                               + f"{(mm.fem_data[3][i] * mm.fem_data[4][i] if mm.fem_data[5][i] == 'EF' else mm.fem_data[3][i]):3.0f}" \
-                               + f"{'EF' if mm.fem_data[5][i] == 'EF' else 'c '}," \
+                               "\n\n\t   " + f"Элемент{(i+1):3.0f} - "
+                               + f"{'стержень' if mm.fem_data[5][i] == 'EF' else ' пружина'},"
+                               + f"{(mm.fem_data[3][i] * mm.fem_data[4][i] if mm.fem_data[5][i] == 'EF' else mm.fem_data[3][i]):3.0f}"
+                               + f"{'EF' if mm.fem_data[5][i] == 'EF' else 'c '},"
                                + f"{mm.fem_data[4][i]:2.0f}L:")
             u = [mm.node_displacement_vector_values[mm.fem_data[2][i][0]],
                  mm.node_displacement_vector_values[mm.fem_data[2][i][1]]]
             output_area.insert(tk.END,
-                               "\n\t      " + f"N =" \
+                               "\n\t      " + f"N ="
                                + f"{mm.force_approximation(u, mm.fem_data[4][i], mm.fem_data[3][i]):7.2f}")
         output_area.insert(tk.END, "\n")
 
@@ -717,7 +717,7 @@ def output_result(set1, accuracy):  # листбокс (0=данные, 1=гра
         # массив с информацией об относительной величине деформаций элментов
         element_deformations = []
         for i in range(len(mm.node_displacement_vector_values) - 1):
-            element_deformations.append(mm.node_displacement_vector_values[mm.fem_data[2][i][1]] \
+            element_deformations.append(mm.node_displacement_vector_values[mm.fem_data[2][i][1]]
                                         - mm.node_displacement_vector_values[mm.fem_data[2][i][0]])
 
         pos_def = max(*element_deformations, 0)
@@ -1091,7 +1091,7 @@ def node_click_event(ind_of_axis=0, ind_of_node=0, num=1):
     nd_opt_window = tk.Tk()
     nd_opt_window.resizable(width=False, height=False)
     nd_opt_window.title(
-        f'Свойства узла {num}   -   {type_of_node[ar_of_data[ind_of_axis][ind_of_node] - 1]},  '\
+        f'Свойства узла {num}   -   {type_of_node[ar_of_data[ind_of_axis][ind_of_node] - 1]},  '
         + f'{ar_of_data[5][ind_of_node]} F')
     nd_opt_window.geometry('580x360')
 
@@ -1207,8 +1207,8 @@ def element_click_event(ind_of_axis=0, ind_of_elem=0, num=1):
     el_opt_window = tk.Tk()
     el_opt_window.resizable(width=False, height=False)
     el_opt_window.title(
-        f'Свойства узла {num}   -   {"стержень" if ar_of_data[ind_of_axis+2][ind_of_elem] > 0 else "пружина"},  '\
-        + f'{abs(ar_of_data[ind_of_axis+2][ind_of_elem])}'\
+        f'Свойства узла {num}   -   {"стержень" if ar_of_data[ind_of_axis+2][ind_of_elem] > 0 else "пружина"},  '
+        + f'{abs(ar_of_data[ind_of_axis+2][ind_of_elem])}'
         + f'{" EF" if ar_of_data[ind_of_axis+2][ind_of_elem] > 0 else " c"}')
     el_opt_window.geometry('580x360')
 
