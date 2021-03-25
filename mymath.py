@@ -19,6 +19,7 @@ common_rigidity_matrix_values = []
 node_forces_vector_general = []
 node_forces_vector_values = []
 node_displacement_vector_general = []
+node_displacement_vector_values = []
 boundary_conditions_matrix_general = []
 boundary_conditions_matrix_values = []
 boundary_conditions_forces_vector_general = []
@@ -29,6 +30,11 @@ boundary_conditions_displacement_vector_general = []
 # функция вычисления знака числа
 def sign(num):
     return -1 if num < 0 else 1
+
+
+# функция вычисления скалярного произведения
+def scalar_multiplication(a, b):
+    return (a[0] * b[0]) + (a[1] * b[1])
 
 
 # функция конвертации данных для построений в данные для вычислений
@@ -235,9 +241,9 @@ def boundary_conditions_displacement_vector():
             boundary_conditions_displacement_vector_general[k] = '0'
 
 
-# __________________________________________________________________________________
-#     в целях импортозамещения для вычисления обратной матрицы используем вместо
-#         модуля numpy код отечественного разработчика Серебрянникова Олега
+# ________________________________________________________________________________
+#      в целях импортозамещения для вычисления обратной матрицы вместо модуля
+#      numpy интегрируем код отечественного разработчика Серебрянникова Олега
 
 
 # функция вычисления минора матрицы, стоящего на пересечении строки 'r' и столбца 'c'
@@ -379,4 +385,41 @@ def inverse_matrix(matrix):
     # Возвращаем результат работы функции - обратную матрицу
     return res_matrix
 
+
 # _________________________________________________________________________________
+
+
+# функция вычисления вектора неизвестных узловых перемещений
+def node_displacement_vector_calculate():
+
+    inverted_matrix = deepcopy(inverse_matrix(boundary_conditions_matrix_values))
+
+    node_displacement_vector_values.clear()
+
+    for i in range(len(inverted_matrix)):
+        u = 0
+        for j in range(len(inverted_matrix)):
+            u += inverted_matrix[i][j] * boundary_conditions_forces_vector_values[j]
+        node_displacement_vector_values.append(u)
+
+
+# функция вычисления аппроксимации поля перемещений одного элемента
+def element_approximation(x, u):  # x = безразмерная локальная координата элемента, u = [перемещ.начала, перемещ.конца]
+
+    # функции форм конечного элемента (х - безразмерный)
+    n = [1 - x, x]
+
+    return scalar_multiplication(n, u)
+
+
+# функция вычисления аппроксимации усилий в элементе
+def force_approximation(u, el_length, c):  # u = [перемещ.начала, перемещ.конца], длина элемента, жёсткость элемента
+
+    ef = c * el_length
+
+    # производные функции форм
+    n = [-1 / el_length, 1 / el_length]
+
+    return scalar_multiplication(n, u) * ef
+
+
