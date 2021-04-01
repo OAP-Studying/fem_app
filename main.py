@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import mymath as mm
+import events as ev
 import tkinter as tk
 import tkinter.font
 from copy import deepcopy
@@ -178,6 +179,25 @@ def massive_import():
     window1.title(f"Методомконечныхэлементоврешателенатор 3000 - {filepath}")
 
 
+# функция экспорта результатов расчёта в файл
+def result_export():
+    if type_of_result_now == 0:
+        filepath = asksaveasfilename(defaultextension="txt", initialdir="files/",
+                                     filetypes=[("Текстовые файлы", "*.txt"), ("Все файлы", "*.*")],)
+        if not filepath:
+            return
+        if type_of_result_now == 0:
+            text = output_area.get("1.0", tk.END)
+            with open(filepath, "w", encoding="utf8") as output_file:
+                output_file.write(text)
+        elif type_of_result_now == 1:
+            print("вывод рисунка 1")
+        else:
+            print("вывод рисунка 2")
+    else:
+        print("В данный момент функция отключена")
+
+
 # функция рисования элемента балки
 def create_balk(ind_of_el, canvas, color, width):   # инд.элем
     canvas.create_rectangle(ar_of_data[4][ind_of_el], ar_of_axis[0] - (10 + min(ar_of_data[2][ind_of_el], 7) * 3),
@@ -320,8 +340,10 @@ def create_node_button(ind_of_axis, ind_of_node):
     if ind_of_axis == 0:
         ar_of_buttons[0].append(tk.Button(master=cnv, text=f"{ind_of_node + 1}", font=('Courier', 12, 'bold'),
                                           relief=tk.FLAT, bd=0, bg='white', cursor="hand2", anchor="s",
-                                          command=lambda num=ind_of_node + 1: node_click_event(ind_of_axis,
-                                                                                               ind_of_node, num)))
+                                          command=lambda num=ind_of_node + 1: ev.node_click_event(ar_of_data,
+                                                                                                  node_data_copy,
+                                                                                                  ind_of_axis,
+                                                                                                  ind_of_node, num)))
         ar_of_buttons[0][ind_of_node].place(anchor="s", x=ar_of_data[4][ind_of_node],
                                             y=y_of_node_button(0, ind_of_node))
     else:
@@ -331,8 +353,9 @@ def create_node_button(ind_of_axis, ind_of_node):
             ar_of_buttons[1].append(
                 tk.Button(master=cnv, text=f"{ar_of_data[6][ind_of_node]}", font=('Courier', 12, 'bold'),
                           relief=tk.FLAT, bd=0, bg='white', cursor="hand2", anchor="center",
-                          command=lambda num=ar_of_data[6][ind_of_node]: node_click_event(ind_of_axis,
-                                                                                          ind_of_node, num)))
+                          command=lambda num=ar_of_data[6][ind_of_node]: ev.node_click_event(ar_of_data, node_data_copy,
+                                                                                             ind_of_axis,
+                                                                                             ind_of_node, num)))
             ar_of_buttons[1][ind_of_node].place(anchor="n", x=ar_of_data[4][ind_of_node],
                                                 y=y_of_node_button(1, ind_of_node))
 
@@ -342,8 +365,10 @@ def create_element_button(ind_of_axis, ind_of_elem, el_length):
     if ind_of_axis == 0:
         ar_of_buttons[2].append(tk.Button(master=cnv, text=f"({ind_of_elem + 1})", font=('Courier', 12),
                                           relief=tk.FLAT, bd=0, bg='white', cursor="hand2", anchor="center",
-                                          command=lambda num=ind_of_elem + 1: element_click_event(ind_of_axis,
-                                                                                                  ind_of_elem, num)))
+                                          command=lambda num=ind_of_elem + 1: ev.element_click_event(ar_of_data,
+                                                                                                     elem_data_copy,
+                                                                                                     ind_of_axis,
+                                                                                                     ind_of_elem, num)))
         ar_of_buttons[2][ind_of_elem].place(anchor="s", x=ar_of_data[4][ind_of_elem] + (el_length // 2),
                                             y=ar_of_axis[0] - (15 + min(max(ar_of_data[2][ind_of_elem], 1), 7) * 3))
     else:
@@ -353,7 +378,8 @@ def create_element_button(ind_of_axis, ind_of_elem, el_length):
             ar_of_buttons[3].append(tk.Button(master=cnv, text=f"({ar_of_data[7][ind_of_elem]})", font=('Courier', 12),
                                               relief=tk.FLAT, bd=0, bg='white', cursor="hand2", anchor="center",
                                               command=lambda num=ar_of_data[7][ind_of_elem]:
-                                              element_click_event(ind_of_axis, ind_of_elem, num)))
+                                              ev.element_click_event(ar_of_data, elem_data_copy,
+                                                                     ind_of_axis, ind_of_elem, num)))
             ar_of_buttons[3][ind_of_elem].place(anchor="n", x=ar_of_data[4][ind_of_elem] + (el_length // 2),
                                                 y=ar_of_axis[1] + 20)
 
@@ -404,7 +430,7 @@ def create_force_label(ind_of_axis, ind_of_node, el_length, n):  # инд.оси
 def create_add_btn(ind_of_node, el_length, n):   # инд.узла, длина элем., normal = left"-1"/right"1" (ось только 1)
     ar_of_buttons[7].append(tk.Button(master=cnv, text="(+)", font=('Courier', 12, "bold"), fg=ar_of_font_colors[2],
                                       relief=tk.FLAT, bd=0, bg='white', cursor="hand2", anchor="center",
-                                      command=lambda: create_add_btn_event(ind_of_node, n)))
+                                      command=lambda: ev.create_add_btn_event(ar_of_data, ind_of_node, n)))
     ar_of_buttons[7][-1].place(anchor="n", x=ar_of_data[4][ind_of_node] + (el_length // 2) * n,
                                y=ar_of_axis[1] + 20)
 
@@ -904,482 +930,6 @@ def element_full_recreating(el_count):   # кол-во элементов = len(
         btn_input_num.config(text="Перегенерировать")
 
 
-# функция скрытия и открытия блоков
-def block_click_event(event, box, h):
-    if event.num == 1:
-        box11['height'] = 5
-        box21['height'] = 5
-        box31['height'] = 5
-    if box['height'] == 5:
-        box['height'] = h
-    else:
-        box['height'] = 5
-
-
-# обработчик закрытия окнка опций (любого)
-def option_close_event(option_window):
-    window1.attributes('-disabled', False)
-    option_window.destroy()
-
-
-# функция реакции кнопок смены типа закрепления узла на нажатия
-def nd_type_btn_click_subevent(lbl_type, j, spn_force, ind_of_axis):
-    global node_data_copy
-
-    for i in range(len(lbl_type)):
-        lbl_type[i].config(font=('Courier', 11))
-    lbl_type[j].config(font=('Courier', 12, 'bold'))
-    node_data_copy[0] = j + 1
-
-    if ind_of_axis == 0:
-        if node_data_copy[0] == 3:
-            spn_force.config(state="disabled")
-        else:
-            spn_force.config(state="normal")
-
-
-# функция реакции кнопок смены типа элемента на нажатия
-def el_type_btn_click_subevent(lbl_type, j, spn_rigidity, lbl_rigidity):
-    global elem_data_copy
-
-    for i in range(len(lbl_type)):
-        lbl_type[i].config(font=('Courier', 11))
-    lbl_type[j].config(font=('Courier', 12, 'bold'))
-    if j == 0:
-        elem_data_copy[0] = 1
-        lbl_rigidity.config(text="EF")
-    elif j == 1:
-        elem_data_copy[0] = -1
-        lbl_rigidity.config(text="c ")
-    else:
-        elem_data_copy[0] = 0
-
-    if j == 2:
-        spn_rigidity.config(state="disabled")
-    else:
-        spn_rigidity.config(state="normal")
-
-
-# подфункция для сохранения данных, введённых в окне изменения узла
-def node_save_subevent(spn_force, nd_opt_window, ind_of_axis=0, ind_of_node=0):
-    global node_data_copy
-    node_data_copy[1] = int(spn_force.get())
-
-    if (ar_of_data[ind_of_axis][ind_of_node] == 1) and (node_data_copy[0] == 1):
-        if ind_of_axis == 0:
-            ar_of_data[5][ind_of_node] = node_data_copy[1]
-    elif (ar_of_data[ind_of_axis][ind_of_node] == 1) and (node_data_copy[0] == 2):
-        ar_of_data[0][ind_of_node] = 2
-        ar_of_data[1][ind_of_node] = 2
-        ar_of_data[5][ind_of_node] = node_data_copy[1]
-        ar_of_data[6][ind_of_node] = ind_of_node + 1
-    elif (ar_of_data[ind_of_axis][ind_of_node] == 1) and (node_data_copy[0] == 3):
-        ar_of_data[ind_of_axis][ind_of_node] = 3
-        if ind_of_axis == 0:
-            ar_of_data[5][ind_of_node] = 0
-    elif (ar_of_data[ind_of_axis][ind_of_node] == 2) and (node_data_copy[0] == 1):
-        ar_of_data[0][ind_of_node] = 1
-        ar_of_data[1][ind_of_node] = 0   # 1 if ind_of_axis == 1 else 0
-        ar_of_data[6][ind_of_node] = 0
-        if ind_of_axis == 0:
-            ar_of_data[5][ind_of_node] = node_data_copy[1]
-    elif (ar_of_data[ind_of_axis][ind_of_node] == 2) and (node_data_copy[0] == 2):
-        ar_of_data[5][ind_of_node] = node_data_copy[1]
-    elif (ar_of_data[ind_of_axis][ind_of_node] == 2) and (node_data_copy[0] == 3):
-        if ind_of_axis == 0:
-            if (ind_of_node == 0) and (ar_of_data[3][ind_of_node] == 0):
-                ar_of_data[0][ind_of_node] = 3
-                ar_of_data[1][ind_of_node] = 0
-                ar_of_data[6][ind_of_node] = 0
-                ar_of_data[5][ind_of_node] = 0
-            elif (ind_of_node == len(ar_of_data[0])-1) and (ar_of_data[3][ind_of_node-1] == 0):
-                ar_of_data[0][ind_of_node] = 3
-                ar_of_data[1][ind_of_node] = 0
-                ar_of_data[6][ind_of_node] = 0
-                ar_of_data[5][ind_of_node] = 0
-    elif (ar_of_data[ind_of_axis][ind_of_node] == 3) and (node_data_copy[0] == 1):
-        ar_of_data[ind_of_axis][ind_of_node] = 1
-        if ind_of_axis == 0:
-            ar_of_data[5][ind_of_node] = node_data_copy[1]
-    elif (ar_of_data[ind_of_axis][ind_of_node] == 3) and (node_data_copy[0] == 2):
-        ar_of_data[0][ind_of_node] = 2
-        ar_of_data[1][ind_of_node] = 2
-        ar_of_data[5][ind_of_node] = node_data_copy[1]
-        ar_of_data[6][ind_of_node] = ind_of_node + 1
-
-    element_full_recreating(len(ar_of_data[2]))
-
-    if btn_input_num['state'] == 'disabled':
-        btn_input_num.config(state="normal", cursor="hand2")
-
-    option_close_event(nd_opt_window)
-
-
-# подфункция для сохранения данных, введённых в окне изменения элемента
-def elem_save_subevent(spn_rigidity, el_opt_window, ind_of_axis=0, ind_of_elem=0):
-    global elem_data_copy
-    if int(spn_rigidity.get()) > 99:
-        elem_data_copy[1] = 99
-    elif int(spn_rigidity.get()) < 1:
-        elem_data_copy[1] = 1
-    else:
-        elem_data_copy[1] = int(spn_rigidity.get())
-
-    if elem_data_copy[0] == 0:   # элемент будет удалён
-        if (ind_of_elem != 0) and (ind_of_elem != len(ar_of_data[ind_of_axis + 2]) - 1):
-            if (ar_of_data[ind_of_axis + 2][ind_of_elem - 1] == 0) and (ar_of_data[ind_of_axis][ind_of_elem] != 2):
-                ar_of_data[ind_of_axis][ind_of_elem] = 0
-                ar_of_data[6][ind_of_elem] = 0
-                ar_of_data[ind_of_axis + 2][ind_of_elem] = 0
-                ar_of_data[7][ind_of_elem] = 0
-            else:
-                ar_of_data[ind_of_axis][ind_of_elem + 1] = 0
-                ar_of_data[6][ind_of_elem + 1] = 0
-                ar_of_data[ind_of_axis + 2][ind_of_elem] = 0
-                ar_of_data[7][ind_of_elem] = 0
-        elif ind_of_elem == 0:
-            if ar_of_data[ind_of_axis][ind_of_elem] == 2:
-                ar_of_data[ind_of_axis][ind_of_elem + 1] = 0
-                ar_of_data[6][ind_of_elem + 1] = 0
-                ar_of_data[ind_of_axis + 2][ind_of_elem] = 0
-                ar_of_data[7][ind_of_elem] = 0
-            else:
-                ar_of_data[ind_of_axis][ind_of_elem] = 0
-                ar_of_data[6][ind_of_elem] = 0
-                ar_of_data[ind_of_axis + 2][ind_of_elem] = 0
-                ar_of_data[7][ind_of_elem] = 0
-        else:
-            if ar_of_data[ind_of_axis][ind_of_elem + 1] == 2:
-                ar_of_data[ind_of_axis][ind_of_elem] = 0
-                ar_of_data[6][ind_of_elem] = 0
-                ar_of_data[ind_of_axis + 2][ind_of_elem] = 0
-                ar_of_data[7][ind_of_elem] = 0
-            else:
-                ar_of_data[ind_of_axis][ind_of_elem + 1] = 0
-                ar_of_data[6][ind_of_elem + 1] = 0
-                ar_of_data[ind_of_axis + 2][ind_of_elem] = 0
-                ar_of_data[7][ind_of_elem] = 0
-    else:
-        ar_of_data[ind_of_axis+2][ind_of_elem] = elem_data_copy[0] * elem_data_copy[1]
-
-    element_full_recreating(len(ar_of_data[2]))
-
-    if btn_input_num['state'] == 'disabled':
-        btn_input_num.config(state="normal", cursor="hand2")
-
-    option_close_event(el_opt_window)
-
-
-# функция обработки нажатия кнопки узла
-def node_click_event(ind_of_axis=0, ind_of_node=0, num=1):
-
-    if (ind_of_node == 0) or (ind_of_node == len(ar_of_data[ind_of_axis]) - 1):   # 3 - узел крайний, 2 - нет
-        node_event_type = 3
-    else:
-        # делаем проверку есть ли 2 соседних узла
-        if ((ar_of_data[ind_of_axis + 2][ind_of_node - 1] != 0) and (
-                ar_of_data[ind_of_axis + 2][ind_of_node] != 0)) or (ar_of_data[ind_of_axis][ind_of_node] == 2):
-            node_event_type = 2
-        else:
-            node_event_type = 3
-
-    # локальная копия данных, которую можно не сохранить = способ закрепления, значение силы
-    global node_data_copy
-    node_data_copy = [ar_of_data[ind_of_axis][ind_of_node], ar_of_data[5][ind_of_node] if ind_of_axis == 0 else 0]
-
-    window1.attributes('-disabled', True)
-    nd_opt_window = tk.Tk()
-    nd_opt_window.resizable(width=False, height=False)
-    nd_opt_window.title(
-        f'Свойства узла {num}   -   {type_of_node[ar_of_data[ind_of_axis][ind_of_node] - 1]},  '
-        + f'{ar_of_data[5][ind_of_node]} F')
-    nd_opt_window.geometry('580x360')
-
-    lbl_title1 = tk.Label(master=nd_opt_window, text="Тип узла:", font=('Courier', 11))
-    lbl_title1.place(anchor="s", relx=0.5, y=30)
-
-    node_box1 = tk.Frame(master=nd_opt_window, relief=tk.RIDGE, borderwidth=2)
-    node_box1.place(anchor='n', relx=0.5, y=40)
-
-    img_type = []
-    for i in range(node_event_type):
-        img_type.append(tk.PhotoImage(master=nd_opt_window, file=f"images/type_0_{i}.png"))
-
-    btn_type = []
-    for i in range(node_event_type):
-        btn_type.append(tk.Button(master=node_box1, image=img_type[i], relief=tk.FLAT, borderwidth=0, cursor="hand2",
-                                  command=lambda j=i: nd_type_btn_click_subevent(lbl_type, j, spn_force, ind_of_axis)))
-        btn_type[i].grid(row=0, column=i, padx=15, pady=10)
-
-    if ((ind_of_axis == 1) or (ar_of_data[1][ind_of_node] != 0)) and (ar_of_data[ind_of_axis][ind_of_node] != 2):
-        btn_type[1].config(state="disabled", cursor="arrow")
-
-    if ar_of_data[ind_of_axis][ind_of_node] == 2:
-        if (ind_of_node != 0) and (ind_of_node != len(ar_of_data[1]) - 1):
-            if (ar_of_data[3][ind_of_node - 1] != 0) or (ar_of_data[3][ind_of_node] != 0):
-                btn_type[0].config(state="disabled", cursor="arrow")
-        elif ind_of_node == 0:
-            if ar_of_data[3][ind_of_node] != 0:
-                btn_type[0].config(state="disabled", cursor="arrow")
-        else:
-            if ar_of_data[3][ind_of_node - 1] != 0:
-                btn_type[0].config(state="disabled", cursor="arrow")
-
-    lbl_type = []
-    for i in range(node_event_type):
-        lbl_type.append(tk.Label(master=node_box1, text=type_of_node[i], anchor="center", font=('Courier', 11)))
-        lbl_type[i].grid(row=1, column=i, padx=5, pady=5)
-
-    lbl_type[node_data_copy[0] - 1].config(font=('Courier', 12, 'bold'))
-
-    lbl_title2 = tk.Label(master=nd_opt_window, text="Силовое воздействие:", font=('Courier', 11))
-    lbl_title2.place(anchor="s", relx=0.5, y=230)
-
-    node_box2 = tk.Frame(master=nd_opt_window, relief=tk.FLAT, borderwidth=0)
-    node_box2.place(anchor='n', relx=0.5, y=235)
-
-    force_value = tk.StringVar(node_box2)
-    force_value.set(node_data_copy[1])
-    spn_force = tk.Spinbox(master=node_box2, from_=-99, to=99, font=('Courier', 15), relief=tk.RIDGE, borderwidth=3,
-                           width=3, justify="center", textvariable=force_value,
-                           state="disabled" if (node_data_copy[0] == 3) or (ind_of_axis == 1) else "normal")
-    spn_force.grid(row=0, column=0, padx=5, pady=5)
-
-    lbl_force = tk.Label(master=node_box2, text="F ", font=('Courier', 15, 'bold'))
-    lbl_force.grid(row=0, column=1, padx=5, pady=5)
-
-    node_box3 = tk.Frame(master=nd_opt_window, relief=tk.FLAT, borderwidth=0)
-    node_box3.place(anchor='s', relx=0.5, rely=0.95)
-
-    btn_save = tk.Button(master=node_box3, text=" Применить ", font=('Courier', 11), relief=tk.RIDGE,
-                         borderwidth=3, cursor="hand2",
-                         command=lambda: node_save_subevent(spn_force, nd_opt_window, ind_of_axis, ind_of_node))
-    btn_save.grid(row=0, column=1, padx=5, pady=0)
-
-    btn_cancel = tk.Button(master=node_box3, text=" Отмена ", font=('Courier', 11), relief=tk.RIDGE,
-                           borderwidth=3, cursor="hand2", command=lambda: option_close_event(nd_opt_window))
-    btn_cancel.grid(row=0, column=0, padx=5, pady=0)
-
-    # продолжение
-
-    nd_opt_window.protocol("WM_DELETE_WINDOW", lambda: option_close_event(nd_opt_window))
-    nd_opt_window.mainloop()
-
-
-# функция обработки нажатия кнопки элемента
-def element_click_event(ind_of_axis=0, ind_of_elem=0, num=1):
-
-    fixations = [0]
-
-    if ind_of_axis == 0:
-        fixations[0] = 2
-    else:
-        if (ind_of_elem != 0) and (ind_of_elem != len(ar_of_data[ind_of_axis + 2]) - 1):
-            if (ar_of_data[ind_of_axis][ind_of_elem] == 2) and (ar_of_data[ind_of_axis + 2][ind_of_elem + 1] != 0):
-                fixations[0] = 2
-            elif (ar_of_data[ind_of_axis][ind_of_elem + 1] == 2) and (ar_of_data[ind_of_axis+2][ind_of_elem - 1] != 0):
-                fixations[0] = 2
-            elif (ar_of_data[ind_of_axis+2][ind_of_elem-1] != 0) and (ar_of_data[ind_of_axis+2][ind_of_elem+1] != 0):
-                fixations[0] = 2
-            else:
-                fixations[0] = 1
-        elif ind_of_elem == 0:
-            if (ar_of_data[ind_of_axis][ind_of_elem] == 2) and (ar_of_data[ind_of_axis + 2][ind_of_elem + 1] != 0):
-                fixations[0] = 2
-            else:
-                fixations[0] = 1
-        else:
-            if (ar_of_data[ind_of_axis][ind_of_elem+1] == 2) and (ar_of_data[ind_of_axis + 2][ind_of_elem - 1] != 0):
-                fixations[0] = 2
-            else:
-                fixations[0] = 1
-
-    if fixations[0] == 2:
-        elem_event_type = 2
-    else:
-        elem_event_type = 3
-
-    # локальная копия данных, которую можно не сохранить = способ закрепления, значение силы
-    global elem_data_copy
-    elem_data_copy = [mm.sign(ar_of_data[ind_of_axis + 2][ind_of_elem]), abs(ar_of_data[ind_of_axis + 2][ind_of_elem])]
-
-    window1.attributes('-disabled', True)
-    el_opt_window = tk.Tk()
-    el_opt_window.resizable(width=False, height=False)
-    el_opt_window.title(
-        f'Свойства узла {num}   -   {"стержень" if ar_of_data[ind_of_axis+2][ind_of_elem] > 0 else "пружина"},  '
-        + f'{abs(ar_of_data[ind_of_axis+2][ind_of_elem])}'
-        + f'{" EF" if ar_of_data[ind_of_axis+2][ind_of_elem] > 0 else " c"}')
-    el_opt_window.geometry('580x360')
-
-    lbl_title1 = tk.Label(master=el_opt_window, text="Тип элемента:", font=('Courier', 11))
-    lbl_title1.place(anchor="s", relx=0.5, y=30)
-
-    elem_box1 = tk.Frame(master=el_opt_window, relief=tk.RIDGE, borderwidth=2)
-    elem_box1.place(anchor='n', relx=0.5, y=40)
-
-    img_type = []
-    for i in range(elem_event_type):
-        img_type.append(tk.PhotoImage(master=el_opt_window, file=f"images/type_1_{i}.png"))
-
-    btn_type = []
-    for i in range(elem_event_type):
-        btn_type.append(tk.Button(master=elem_box1, image=img_type[i], relief=tk.FLAT, borderwidth=0, cursor="hand2",
-                                  command=lambda j=i: el_type_btn_click_subevent(
-                                      lbl_type, j, spn_rigidity, lbl_rigidity)))
-        btn_type[i].grid(row=0, column=i, padx=15, pady=10)
-    if ind_of_axis == 1:
-        btn_type[0].config(state="disabled", cursor="arrow")
-
-    lbl_type = []
-    for i in range(elem_event_type):
-        lbl_type.append(tk.Label(master=elem_box1, text=type_of_elem[i], anchor="center", font=('Courier', 11)))
-        lbl_type[i].grid(row=1, column=i, padx=5, pady=5)
-
-    lbl_type[0 if elem_data_copy[0] == 1 else 1].config(font=('Courier', 12, 'bold'))
-
-    lbl_title2 = tk.Label(master=el_opt_window, text="Жесткость:", font=('Courier', 11))
-    lbl_title2.place(anchor="s", relx=0.5, y=230)
-
-    elem_box2 = tk.Frame(master=el_opt_window, relief=tk.FLAT, borderwidth=0)
-    elem_box2.place(anchor='n', relx=0.5, y=235)
-
-    rigidity_value = tk.StringVar(elem_box2)
-    rigidity_value.set(elem_data_copy[1])
-    spn_rigidity = tk.Spinbox(master=elem_box2, from_=1, to=99, font=('Courier', 15), relief=tk.RIDGE, borderwidth=3,
-                              width=3, justify="center", textvariable=rigidity_value)
-    spn_rigidity.grid(row=0, column=0, padx=5, pady=5)
-
-    lbl_rigidity = tk.Label(master=elem_box2, text="EF" if elem_data_copy[0] == 1 else "c ", width=2,
-                            font=('Courier', 15, 'bold'))
-    lbl_rigidity.grid(row=0, column=1, padx=5, pady=5)
-
-    elem_box3 = tk.Frame(master=el_opt_window, relief=tk.FLAT, borderwidth=0)
-    elem_box3.place(anchor='s', relx=0.5, rely=0.95)
-
-    btn_save = tk.Button(master=elem_box3, text=" Применить ", font=('Courier', 11), relief=tk.RIDGE,
-                         borderwidth=3, cursor="hand2",
-                         command=lambda: elem_save_subevent(spn_rigidity, el_opt_window, ind_of_axis, ind_of_elem))
-    btn_save.grid(row=0, column=1, padx=5, pady=0)
-
-    btn_cancel = tk.Button(master=elem_box3, text=" Отмена ", font=('Courier', 11), relief=tk.RIDGE,
-                           borderwidth=3, cursor="hand2", command=lambda: option_close_event(el_opt_window))
-    btn_cancel.grid(row=0, column=0, padx=5, pady=0)
-
-    # продолжение
-
-    el_opt_window.protocol("WM_DELETE_WINDOW", lambda: option_close_event(el_opt_window))
-    el_opt_window.mainloop()
-
-
-# функция обработки нажатий на кнопки создания элементов
-def create_add_btn_event(ind_of_node, n):
-    ar_of_data[1][ind_of_node + n] = 1
-    ar_of_data[6][ind_of_node + n] = max(*ar_of_data[6], len(ar_of_data[0])) + 1
-    ar_of_data[3][ind_of_node + min(n, 0)] = -1
-    ar_of_data[7][ind_of_node + min(n, 0)] = max(*ar_of_data[7], len(ar_of_data[2])) + 1
-    # если нормаль 1, то будет "+0" и смотрим правый элемент (с номером узла)
-    # если нормаль -1, то будет "-1" и смотрим левый элемент (номер узла -1)
-
-    element_full_recreating(len(ar_of_data[2]))
-
-    if btn_input_num['state'] == 'disabled':
-        btn_input_num.config(state="normal", cursor="hand2")
-
-
-# функция обработки взаимодействия со спинбоксом
-def spin_input_num_event(event=""):   # изменилось значение в боксе
-    keycode = 0
-    if event != "":
-        keycode = event.keycode
-    if keycode == 13:   # если кнопка рабочая и нажимаем энтер, то вызываем её событие
-        if btn_input_num["state"] != "disabled":
-            btn_input_num_event()
-    else:
-        btn_input_num.config(state="normal", cursor="hand2")
-
-
-# функция обработки нажатия кнопки перегенерировать
-def btn_input_num_event():
-    if 1 <= int(spin_input_num.get()) <= 10:   # обрабатываем только верные значения
-
-        massive_regeneration(int(spin_input_num.get()))
-
-        element_full_recreating(len(ar_of_data[2]))
-
-        btn_input_num.config(state="disabled", cursor="arrow")
-
-    if btn_calculate['state'] == 'disabled':
-        btn_calculate.config(state="normal", cursor="hand2")
-    if btn_result_output['state'] == 'disabled':
-        btn_result_output.config(state="normal", cursor="hand2")
-    if btn_export['state'] == 'disabled':
-        btn_export.config(state="normal", cursor="hand2")
-
-    window1.title("Методомконечныхэлементоврешателенатор 3000")
-
-
-# функция обработки нажатия кнопки импорта
-def btn_input_imp_event():
-    massive_import()
-
-    element_full_recreating(len(ar_of_data[2]))
-
-    if btn_input_num['state'] == 'disabled':
-        btn_input_num.config(state="normal", cursor="hand2")
-    if btn_calculate['state'] == 'disabled':
-        btn_calculate.config(state="normal", cursor="hand2")
-    if btn_result_output['state'] == 'disabled':
-        btn_result_output.config(state="normal", cursor="hand2")
-    if btn_export['state'] == 'disabled':
-        btn_export.config(state="normal", cursor="hand2")
-
-
-# функция обработки нажатия кнопки экспорта
-def export_event():
-    massive_export()
-
-
-# функция обработки нажатия кнопки Показать из блока 2
-def btn_calculate_event():
-    # создаём все мат. объекты и заполняем
-    matrix_calculation()
-
-    # заполняем таблицу на основе выбранных параметров
-    create_output_matrix(cmb_calculate1.current(), cmb_calculate2.current())
-
-
-# функция обработки нажатия кнопки Показать из блока 3
-def btn_result_output_event():
-    # находим аппроксимации
-    approximation_calculation()
-
-    # выводим тип данных, который выбрал пользователь
-    output_result(cmb_result.current(), int(spin_result_accuracy.get()) + 1)
-
-    if btn_result_export['state'] == 'disabled':
-        btn_result_export.config(state="normal", cursor="hand2")
-
-
-# функция экспорта результатов расчёта в файл
-def btn_result_export_event():
-    if type_of_result_now == 0:
-        filepath = asksaveasfilename(defaultextension="txt", initialdir="files/",
-                                     filetypes=[("Текстовые файлы", "*.txt"), ("Все файлы", "*.*")],)
-        if not filepath:
-            return
-        if type_of_result_now == 0:
-            text = output_area.get("1.0", tk.END)
-            with open(filepath, "w", encoding="utf8") as output_file:
-                output_file.write(text)
-        elif type_of_result_now == 1:
-            print("вывод рисунка 1")
-        else:
-            print("вывод рисунка 2")
-    else:
-        print("В данный момент функция отключена")
-
-
 # coded by QWertyIX
 if __name__ == '__main__':
     window1 = tk.Tk()
@@ -1423,8 +973,8 @@ if __name__ == '__main__':
         font=('Courier', 12, 'bold'),
         relief=tk.FLAT, borderwidth=0, height=1, cursor='hand2')  # , command=lambda: block_click_event(box11, 440))
     btn1_title.place(anchor="nw", relx=0, rely=0)
-    btn1_title.bind('<Button 1>', lambda event: block_click_event(event, box=box11, h=440))
-    btn1_title.bind("<Button 3>", lambda event: block_click_event(event, box=box11, h=440))
+    btn1_title.bind('<Button 1>', lambda event: ev.block_click_event(event, box=box11, h=440))
+    btn1_title.bind("<Button 3>", lambda event: ev.block_click_event(event, box=box11, h=440))
 
     lbl1_info = tk.Label(
         master=box10,
@@ -1444,20 +994,20 @@ if __name__ == '__main__':
     lbl1_input1.grid(row=0, column=0, padx=12, pady=0)
 
     spin_input_num = tk.Spinbox(master=box110, from_=1, to=10, width=3, justify="center", font=('Courier', 15),
-                                relief=tk.RIDGE, borderwidth=3, command=spin_input_num_event)
+                                relief=tk.RIDGE, borderwidth=3, command=ev.spin_input_num_event)
     spin_input_num.grid(row=0, column=1, padx=10, pady=0)
-    spin_input_num.bind("<KeyPress>", spin_input_num_event)
+    spin_input_num.bind("<KeyPress>", ev.spin_input_num_event)
 
     btn_input_num = tk.Button(master=box110, text="Сгенерировать", width=18, font=('Courier', 10),
-                              relief=tk.RIDGE, borderwidth=3, cursor="hand2", command=btn_input_num_event)
+                              relief=tk.RIDGE, borderwidth=3, cursor="hand2", command=ev.btn_input_num_event)
     btn_input_num.grid(row=0, column=2, padx=10, pady=0)
 
     btn_input_imp = tk.Button(master=box110, text="Импортировать", width=15, font=('Courier', 10),
-                              relief=tk.RIDGE, borderwidth=3, cursor="hand2", command=btn_input_imp_event)
+                              relief=tk.RIDGE, borderwidth=3, cursor="hand2", command=ev.btn_input_imp_event)
     btn_input_imp.grid(row=0, column=3, padx=10, pady=0)
 
     btn_export = tk.Button(master=box110, text="Экспортировать", width=15, font=('Courier', 10),
-                           relief=tk.RIDGE, borderwidth=3, state="disabled", command=export_event)
+                           relief=tk.RIDGE, borderwidth=3, state="disabled", command=ev.export_event)
     btn_export.grid(row=0, column=4, padx=10, pady=0)
 
     cnv = tk.Canvas(master=box11, width=1030, height=364, relief=tk.RIDGE, bg="white", borderwidth=3)
@@ -1483,8 +1033,8 @@ if __name__ == '__main__':
         font=('Courier', 12, 'bold'),
         relief=tk.FLAT, borderwidth=0, height=1, cursor='hand2')  # , command=lambda: block_click_event(box21, 440))
     btn2_title.place(anchor="nw", relx=0, rely=0)
-    btn2_title.bind('<Button 1>', lambda event: block_click_event(event, box=box21, h=440))
-    btn2_title.bind("<Button 3>", lambda event: block_click_event(event, box=box21, h=440))
+    btn2_title.bind('<Button 1>', lambda event: ev.block_click_event(event, box=box21, h=440))
+    btn2_title.bind("<Button 3>", lambda event: ev.block_click_event(event, box=box21, h=440))
 
     lbl2_info = tk.Label(
         master=box20,
@@ -1513,7 +1063,7 @@ if __name__ == '__main__':
     cmb_calculate2.grid(row=0, column=2, padx=12, pady=0)
 
     btn_calculate = tk.Button(master=box210, text="Показать", width=10, font=('Courier', 10), state='disabled',
-                              relief=tk.RIDGE, borderwidth=3, command=btn_calculate_event)
+                              relief=tk.RIDGE, borderwidth=3, command=ev.btn_calculate_event)
     btn_calculate.grid(row=0, column=3, padx=12, pady=0)
 
     cnv2 = tk.Canvas(master=box21, width=1030, height=364, relief=tk.RIDGE, bg="white", borderwidth=3)
@@ -1538,8 +1088,8 @@ if __name__ == '__main__':
         font=('Courier', 12, 'bold'),
         relief=tk.FLAT, borderwidth=0, height=1, cursor='hand2')  # , command=lambda: block_click_event(box31, 440))
     btn3_title.place(anchor="nw", relx=0, rely=0)
-    btn3_title.bind('<Button 1>', lambda event: block_click_event(event, box=box31, h=440))
-    btn3_title.bind("<Button 3>", lambda event: block_click_event(event, box=box31, h=440))
+    btn3_title.bind('<Button 1>', lambda event: ev.block_click_event(event, box=box31, h=440))
+    btn3_title.bind("<Button 3>", lambda event: ev.block_click_event(event, box=box31, h=440))
 
     lbl3_info = tk.Label(
         master=box30,
@@ -1573,11 +1123,11 @@ if __name__ == '__main__':
     spin_result_accuracy.grid(row=0, column=3, padx=8, pady=0)
 
     btn_result_output = tk.Button(master=box310, text="Показать", width=10, font=('Courier', 10), state='disabled',
-                                  relief=tk.RIDGE, borderwidth=3, command=btn_result_output_event)
+                                  relief=tk.RIDGE, borderwidth=3, command=ev.btn_result_output_event)
     btn_result_output.grid(row=0, column=4, padx=8, pady=0)
 
     btn_result_export = tk.Button(master=box310, text="Экспортировать", width=15, font=('Courier', 10),
-                                  state='disabled', relief=tk.RIDGE, borderwidth=3, command=btn_result_export_event)
+                                  state='disabled', relief=tk.RIDGE, borderwidth=3, command=ev.btn_result_export_event)
     btn_result_export.grid(row=0, column=5, padx=8, pady=0)
 
     area_box = tk.Frame(master=box31, relief=tk.FLAT, borderwidth=0)
