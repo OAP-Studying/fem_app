@@ -14,8 +14,6 @@ type_of_elem = ["стержень", "пружина", "удалить"]
 node_data_copy = [0, 0]
 elem_data_copy = [1, 0]
 
-ve = {}
-
 matrix_calculated = False
 approximation_calculated = False
 
@@ -65,7 +63,8 @@ for k in range(4):
 
 
 # функция расчёта координаты У кнопок узлов
-def y_of_node_button(ind_of_axis, ind_of_node, h0=20, h1=25):  # инд.узла, отступы У вверх от оси 0 и вниз от оси 1
+def y_of_node_button(ind_of_axis, ind_of_node, h0=20, h1=25):
+    # инд.узла, отступы У вверх от оси 0 и вниз от оси 1
     if ind_of_axis == 1:
         return ar_of_axis[1] + h1
     else:
@@ -84,7 +83,8 @@ def y_of_node_button(ind_of_axis, ind_of_node, h0=20, h1=25):  # инд.узла
 
 
 # функция переобъявления данных расчётной схемы на основе нового введённого числа
-def massive_regeneration(el_count):  # el_count = int = int(spin_input_num.get())
+def massive_regeneration(el_count):
+    # el_count = int = int(spin_input_num.get())
     for i in range(len(ar_of_data)):  # очищаем все данные
         ar_of_data[i].clear()
 
@@ -145,7 +145,7 @@ def approximation_calculation():
 
 
 # функция экспорта данных расчётной схемы в файл
-def massive_export():
+def massive_export(ve):
     filepath = asksaveasfilename(defaultextension="txt", initialdir="files/",
                                  filetypes=[("Текстовые файлы", "*.txt"), ("Все файлы", "*.*")], )
     if not filepath:
@@ -161,7 +161,7 @@ def massive_export():
 
 
 # функция импорта данных расчётной схемы из файла
-def massive_import():
+def massive_import(ve):
     filepath = askopenfilename(initialdir="files/",
                                filetypes=[("Текстовые файлы", "*.txt"), ("Все файлы", "*.*")])
     if not filepath:
@@ -180,7 +180,7 @@ def massive_import():
 
 
 # функция экспорта результатов расчёта в файл
-def result_export():
+def result_export(ve):
     if type_of_result_now == 0:
         filepath = asksaveasfilename(defaultextension="txt", initialdir="files/",
                                      filetypes=[("Текстовые файлы", "*.txt"), ("Все файлы", "*.*")], )
@@ -199,14 +199,16 @@ def result_export():
 
 
 # функция рисования элемента балки
-def create_balk(ind_of_el, canvas, color, width):  # инд.элем
+def create_balk(ind_of_el, canvas, color, width):
+    # инд.элем
     canvas.create_rectangle(ar_of_data[4][ind_of_el], ar_of_axis[0] - (10 + min(ar_of_data[2][ind_of_el], 7) * 3),
                             ar_of_data[4][ind_of_el + 1], ar_of_axis[0] + (10 + min(ar_of_data[2][ind_of_el], 7) * 3),
                             outline=color, width=width, tag=f"balk_0_{ind_of_el}")
 
 
 # функция рисования деформированного элемента балки
-def create_deformed_balk(ind_of_el, canvas, color, width):  # инд.элем
+def create_deformed_balk(ind_of_el, canvas, color, width):
+    # инд.элем
     canvas.create_rectangle(ar_of_data[4][ind_of_el] + pixel_displacements[ind_of_el],
                             ar_of_axis[0] - (10 + min(ar_of_data[2][ind_of_el], 7) * 3),
                             ar_of_data[4][ind_of_el + 1] + pixel_displacements[ind_of_el + 1],
@@ -215,7 +217,8 @@ def create_deformed_balk(ind_of_el, canvas, color, width):  # инд.элем
 
 
 # функция рисования пружины длины L из левого узла
-def create_spring(ind_of_axis, ind_of_el, canvas, color, width, h=15):  # инд. оси, инд. элем, высота точек пружины
+def create_spring(ind_of_axis, ind_of_el, canvas, color, width, h=15):
+    # инд. оси, инд. элем, высота точек пружины
     x_beg = ar_of_data[4][ind_of_el]
     x_end = ar_of_data[4][ind_of_el + 1]
     y_axis = ar_of_axis[ind_of_axis]
@@ -236,7 +239,8 @@ def create_spring(ind_of_axis, ind_of_el, canvas, color, width, h=15):  # инд
 
 
 # функция рисования деформированной пружины длины L из левого узла
-def create_deformed_spring(ind_of_axis, ind_of_el, canvas, color, width, h=15):  # инд. оси, инд. элем, холст, цвет
+def create_deformed_spring(ind_of_axis, ind_of_el, canvas, color, width, h=15):
+    # инд. оси, инд. элем, холст, цвет
     if ind_of_axis == 0:
         pix_dis_beg = pixel_displacements[ind_of_el]
         pix_dis_end = pixel_displacements[ind_of_el + 1]
@@ -264,7 +268,8 @@ def create_deformed_spring(ind_of_axis, ind_of_el, canvas, color, width, h=15): 
 
 
 # функция рисования заделки
-def create_fixation(ind_of_axis, ind_of_node, canvas, width):  # инд. оси, инд. узла
+def create_fixation(ind_of_axis, ind_of_node, canvas, width):
+    # инд. оси, инд. узла
     if ind_of_axis == 0:
         if ind_of_node == 0:  # левый узел, значит берём инфу из правого элемента
             fixation_drawing(canvas, width, ind_of_axis, ind_of_node, -1)
@@ -283,7 +288,8 @@ def create_fixation(ind_of_axis, ind_of_node, canvas, width):  # инд. оси,
 
 
 # функция рисования линий заделки
-def fixation_drawing(canvas, width, ind_of_axis=0, ind_of_node=0, n=1):  # i.оси, i.узла, normal=left "-1"/right "1"
+def fixation_drawing(canvas, width, ind_of_axis=0, ind_of_node=0, n=1):
+    # i.оси, i.узла, normal=left "-1"/right "1"
     # если n=1, то max=1 и смотрим левый элемент, если n=-1, то max=0 и смотрим элемент с индексом узла
     ef_info = ar_of_data[ind_of_axis + 2][ind_of_node - 1 * max(n, 0)]
     fix_half_line = (10 + min(max(ef_info, 1), 7) * 3) + 7
@@ -305,21 +311,24 @@ def fixation_drawing(canvas, width, ind_of_axis=0, ind_of_node=0, n=1):  # i.о�
 
 
 # функция рисования линии соединение я другой осью
-def create_connection(ind_of_node, canvas, color, width, del1=0):  # инд.узла, сколько пикселей торчит вниз после оси 1
+def create_connection(ind_of_node, canvas, color, width, del1=0):
+    # инд.узла, сколько пикселей торчит вниз после оси 1
     canvas.create_line(ar_of_data[4][ind_of_node], ar_of_axis[0],
                        ar_of_data[4][ind_of_node], ar_of_axis[1] + del1,
                        width=width, fill=color, tag=f"connection_0_{ind_of_node}")
 
 
 # функция рисования линии соединение я другой осью для деформированной системы
-def create_deformed_connection(ind_of_node, canvas, color, width, del1=0):  # инд.узла, холст, цвет
+def create_deformed_connection(ind_of_node, canvas, color, width, del1=0):
+    # инд.узла, холст, цвет
     canvas.create_line(ar_of_data[4][ind_of_node] + pixel_displacements[ind_of_node], ar_of_axis[0],
                        ar_of_data[4][ind_of_node] + pixel_displacements[ind_of_node], ar_of_axis[1] + del1,
                        width=width, fill=color, tag=f"def_connection_0_{ind_of_node}")
 
 
 # функция рисования векторов сил
-def create_force(ind_of_axis, ind_of_node, el_length, n):  # инд.оси, инд.узла, длина элем., normal = left"-1"/right"1"
+def create_force(ve, ind_of_axis, ind_of_node, el_length, n):
+    # инд.оси, инд.узла, длина элем., normal = left"-1"/right"1"
     if ind_of_axis == 2:
         ve['cnv'].create_line(ar_of_data[4][ind_of_node], ar_of_axis[0],
                               ar_of_data[4][ind_of_node], ar_of_axis[2] + 8,
@@ -336,11 +345,11 @@ def create_force(ind_of_axis, ind_of_node, el_length, n):  # инд.оси, ин
 
 
 # функция создания кнопок узлов
-def create_node_button(ind_of_axis, ind_of_node):
+def create_node_button(ve, ind_of_axis, ind_of_node):
     if ind_of_axis == 0:
         ar_of_buttons[0].append(tk.Button(master=ve['cnv'], text=f"{ind_of_node + 1}", font=('Courier', 12, 'bold'),
                                           relief=tk.FLAT, bd=0, bg='white', cursor="hand2", anchor="s",
-                                          command=lambda num=ind_of_node + 1: ev.node_click_event(ar_of_data,
+                                          command=lambda num=ind_of_node + 1: ev.node_click_event(ve, ar_of_data,
                                                                                                   node_data_copy,
                                                                                                   ind_of_axis,
                                                                                                   ind_of_node, num)))
@@ -353,7 +362,8 @@ def create_node_button(ind_of_axis, ind_of_node):
             ar_of_buttons[1].append(
                 tk.Button(master=ve['cnv'], text=f"{ar_of_data[6][ind_of_node]}", font=('Courier', 12, 'bold'),
                           relief=tk.FLAT, bd=0, bg='white', cursor="hand2", anchor="center",
-                          command=lambda num=ar_of_data[6][ind_of_node]: ev.node_click_event(ar_of_data, node_data_copy,
+                          command=lambda num=ar_of_data[6][ind_of_node]: ev.node_click_event(ve, ar_of_data,
+                                                                                             node_data_copy,
                                                                                              ind_of_axis,
                                                                                              ind_of_node, num)))
             ar_of_buttons[1][ind_of_node].place(anchor="n", x=ar_of_data[4][ind_of_node],
@@ -361,11 +371,11 @@ def create_node_button(ind_of_axis, ind_of_node):
 
 
 # функция создания кнопок элементов
-def create_element_button(ind_of_axis, ind_of_elem, el_length):
+def create_element_button(ve, ind_of_axis, ind_of_elem, el_length):
     if ind_of_axis == 0:
         ar_of_buttons[2].append(tk.Button(master=ve['cnv'], text=f"({ind_of_elem + 1})", font=('Courier', 12),
                                           relief=tk.FLAT, bd=0, bg='white', cursor="hand2", anchor="center",
-                                          command=lambda num=ind_of_elem + 1: ev.element_click_event(ar_of_data,
+                                          command=lambda num=ind_of_elem + 1: ev.element_click_event(ve, ar_of_data,
                                                                                                      elem_data_copy,
                                                                                                      ind_of_axis,
                                                                                                      ind_of_elem, num)))
@@ -379,14 +389,14 @@ def create_element_button(ind_of_axis, ind_of_elem, el_length):
                 tk.Button(master=ve['cnv'], text=f"({ar_of_data[7][ind_of_elem]})", font=('Courier', 12),
                           relief=tk.FLAT, bd=0, bg='white', cursor="hand2", anchor="center",
                           command=lambda num=ar_of_data[7][ind_of_elem]:
-                          ev.element_click_event(ar_of_data, elem_data_copy,
+                          ev.element_click_event(ve, ar_of_data, elem_data_copy,
                                                  ind_of_axis, ind_of_elem, num)))
             ar_of_buttons[3][ind_of_elem].place(anchor="n", x=ar_of_data[4][ind_of_elem] + (el_length // 2),
                                                 y=ar_of_axis[1] + 20)
 
 
 # функция создания лейблов элементов
-def create_element_label(ind_of_axis, ind_of_elem, el_length):
+def create_element_label(ve, ind_of_axis, ind_of_elem, el_length):
     if ind_of_axis == 0:
         if ar_of_data[2][ind_of_elem] > 0:
             ar_of_buttons[4].append(
@@ -418,7 +428,9 @@ def create_element_label(ind_of_axis, ind_of_elem, el_length):
 
 
 # функция рисования векторов сил
-def create_force_label(ind_of_axis, ind_of_node, el_length, n):  # инд.оси, инд.узла, длина элем, n=left"-1"/right"1"
+def create_force_label(ve, ind_of_axis, ind_of_node, el_length, n):
+    # инд.оси, инд.узла, длина элем, n=left"-1"/right"1"
+
     if ar_of_data[5][ind_of_node] == 0:
         ar_of_buttons[7].append(0)
     else:
@@ -432,17 +444,19 @@ def create_force_label(ind_of_axis, ind_of_node, el_length, n):  # инд.оси
 
 
 # функция создания кнопок добавления элементов
-def create_add_btn(ind_of_node, el_length, n):  # инд.узла, длина элем., normal = left"-1"/right"1" (ось только 1)
+def create_add_btn(ve, ind_of_node, el_length, n):
+    # инд.узла, длина элем., normal = left"-1"/right"1" (ось только 1)
     ar_of_buttons[7].append(
         tk.Button(master=ve['cnv'], text="(+)", font=('Courier', 12, "bold"), fg=ar_of_font_colors[2],
                   relief=tk.FLAT, bd=0, bg='white', cursor="hand2", anchor="center",
-                  command=lambda: ev.create_add_btn_event(ar_of_data, ind_of_node, n)))
+                  command=lambda: ev.create_add_btn_event(ve, ar_of_data, ind_of_node, n)))
     ar_of_buttons[7][-1].place(anchor="n", x=ar_of_data[4][ind_of_node] + (el_length // 2) * n,
                                y=ar_of_axis[1] + 20)
 
 
 # функция рисования половин фигурной скобки, из которых собирается целая
-def create_half_curly(canvas, x_st, y_st, half, width, color):  # родительский холст, коорд Х начала блока,
+def create_half_curly(canvas, x_st, y_st, half, width, color):
+    # родительский холст, коорд Х начала блока,
     # коорд У начала блока, половина=top'1'/bottom'-1'
 
     if half == 1:
@@ -462,7 +476,8 @@ def create_half_curly(canvas, x_st, y_st, half, width, color):  # родител
 
 
 # функция рисования скобок для матрицы из блока 2
-def create_bracket(canvas, b_type, x, n, width, color):  # родительский холст, тип скобки "square"/"curly",
+def create_bracket(canvas, b_type, x, n, width, color):
+    # родительский холст, тип скобки "square"/"curly",
     # координата Х начала, normal=open'1'/close'-1', ширина линии, цвет линии
 
     if b_type == "square":
@@ -475,7 +490,8 @@ def create_bracket(canvas, b_type, x, n, width, color):  # родительск�
 
 
 # функция построения системы уравнений в матричном виде для решаемой задачи
-def create_output_matrix(set1, set2):  # листбокс1 (0 - без гран., 1 - с гран.), листбокс2 (0 - общий, 1 - числовой)
+def create_output_matrix(ve, set1, set2):
+    # листбокс1 (0 - без гран., 1 - с гран.), листбокс2 (0 - общий, 1 - числовой)
     # если таблица создана, то удаляем её и потомков
     if len(output_matrix) > 0:
         output_matrix[0].destroy()
@@ -601,7 +617,8 @@ def create_graph(ind_of_axis, ind_of_el, canvas, width, x_array, norm_factor1, n
 
 
 # функция вывода результатов в виде текста или графиков
-def output_result(set1, accuracy):  # листбокс (0=данные, 1=графики, 2=деформ.сист.), количество отрезков (1..10)
+def output_result(ve, set1, accuracy):
+    # листбокс (0=данные, 1=графики, 2=деформ.сист.), количество отрезков (1..10)
     global type_of_result_now
 
     # удаляем предыдущий элемент вывода
@@ -661,11 +678,14 @@ def output_result(set1, accuracy):  # листбокс (0=данные, 1=гра
 
         ve['output_area'].insert("1.0", "\n\t" + "Информация о системе:".center(48, ' ') + "\n")
         ve['output_area'].insert(tk.END,
-                                 "\n" + f"\t      Число узлов:{(nodes - (extra // 2)):3.0f}     Число элементов:{elements:3.0f}")
+                                 "\n" + f"\t      Число узлов:{(nodes - (extra // 2)):3.0f}     "
+                                        f"Число элементов:{elements:3.0f}")
         ve['output_area'].insert(tk.END,
-                                 "\n" + f"\t          Заделок:{fixations:3.0f}            Стержней:{balks:3.0f}")
+                                 "\n" + f"\t          Заделок:{fixations:3.0f}            "
+                                        f"Стержней:{balks:3.0f}")
         ve['output_area'].insert(tk.END,
-                                 "\n" + f"\t   3-х соединений:{(connections // 2):3.0f}              Пружин:{springs:3.0f}")
+                                 "\n" + f"\t   3-х соединений:{(connections // 2):3.0f}              "
+                                        f"Пружин:{springs:3.0f}")
 
         # аппроксимация перемещений
         ve['output_area'].insert(tk.END, "\n\n\n\n\t" + "Аппроксимация перемещений:".center(48, ' '))
@@ -831,15 +851,14 @@ def output_result(set1, accuracy):  # листбокс (0=данные, 1=гра
 
 
 # функция очищения и рисования расчётной схемы
-def element_full_recreating(el_count):  # кол-во элементов = len(ar_of_data[2])
+def element_full_recreating(ve, el_count):
+    # кол-во элементов = len(ar_of_data[2])
 
     # изменили систему и расчёты нужно проводить заново
     global matrix_calculated
     global approximation_calculated
     matrix_calculated = False
     approximation_calculated = False
-
-    global ve
 
     # очищаем весь холст
     ve['cnv'].delete("all")
@@ -880,37 +899,37 @@ def element_full_recreating(el_count):  # кол-во элементов = len(a
 
     # размещаем кнопки узлов
     for i in range(el_count + 1):
-        create_node_button(0, i)  # для оси 0
-        create_node_button(1, i)  # для оси 1
+        create_node_button(ve, 0, i)  # для оси 0
+        create_node_button(ve, 1, i)  # для оси 1
 
     # размещаем кнопки элементов
     for i in range(el_count):
-        create_element_button(0, i, el_length)  # для оси 0
-        create_element_button(1, i, el_length)  # для оси 1
+        create_element_button(ve, 0, i, el_length)  # для оси 0
+        create_element_button(ve, 1, i, el_length)  # для оси 1
 
     # размещаем лейблы жёсткости
     for i in range(el_count):
-        create_element_label(0, i, el_length)  # для оси 0
-        create_element_label(1, i, el_length)  # для оси 1
+        create_element_label(ve, 0, i, el_length)  # для оси 0
+        create_element_label(ve, 1, i, el_length)  # для оси 1
 
     # строим вектора сил
     for i in range(el_count + 1):
         if ar_of_data[5][i] != 0:
             if i == 0:
-                create_force(0, i, el_length, -1)  # рисуем на оси 0 влево
+                create_force(ve, 0, i, el_length, -1)  # рисуем на оси 0 влево
             elif i == len(ar_of_data[5]) - 1:
-                create_force(0, i, el_length, 1)  # рисуем на оси 0 вправо
+                create_force(ve, 0, i, el_length, 1)  # рисуем на оси 0 вправо
             else:
-                create_force(2, i, el_length, 1)  # рисуем на оси 2 вправо
+                create_force(ve, 2, i, el_length, 1)  # рисуем на оси 2 вправо
 
     # размещаем лейблы сил
     for i in range(el_count + 1):
         if i == 0:
-            create_force_label(0, i, el_length, -1)  # рисуем на оси 0 влево
+            create_force_label(ve, 0, i, el_length, -1)  # рисуем на оси 0 влево
         elif i == len(ar_of_data[5]) - 1:
-            create_force_label(0, i, el_length, 1)  # рисуем на оси 0 вправо
+            create_force_label(ve, 0, i, el_length, 1)  # рисуем на оси 0 вправо
         else:
-            create_force_label(2, i, el_length, 1)  # рисуем на оси 2 вправо
+            create_force_label(ve, 2, i, el_length, 1)  # рисуем на оси 2 вправо
 
     # размещаем кнопки создания элементов
     for i in range(el_count + 1):
@@ -918,21 +937,21 @@ def element_full_recreating(el_count):  # кол-во элементов = len(a
             if (i != 0) and (i != len(ar_of_data[1]) - 1):
                 if (ar_of_data[3][i - 1] == 0) and (ar_of_data[3][i] == 0):
                     if ar_of_data[1][i - 1] == 0:
-                        create_add_btn(i, el_length, -1)
+                        create_add_btn(ve, i, el_length, -1)
                     if ar_of_data[1][i + 1] == 0:
-                        create_add_btn(i, el_length, 1)
+                        create_add_btn(ve, i, el_length, 1)
             elif i == 0:
                 if ar_of_data[1][i + 1] == 0:
-                    create_add_btn(i, el_length, 1)
+                    create_add_btn(ve, i, el_length, 1)
             else:
                 if ar_of_data[1][i - 1] == 0:
-                    create_add_btn(i, el_length, -1)
+                    create_add_btn(ve, i, el_length, -1)
         elif ar_of_data[1][i] == 1:
             if (i != 0) and (i != len(ar_of_data[1]) - 1):
                 if ar_of_data[1][i - 1] == 0:
-                    create_add_btn(i, el_length, -1)
+                    create_add_btn(ve, i, el_length, -1)
                 if ar_of_data[1][i + 1] == 0:
-                    create_add_btn(i, el_length, 1)
+                    create_add_btn(ve, i, el_length, 1)
 
     # продолжение
 
@@ -940,9 +959,9 @@ def element_full_recreating(el_count):  # кол-во элементов = len(a
         ve['btn_input_num'].config(text="Перегенерировать")
 
 
-# coded by QWertyIX
-if __name__ == '__main__':
-    ve['window1'] = tk.Tk()
+def create_interface():
+    ve = {'window1': tk.Tk()}
+
     ve['window1'].resizable(width=False, height=False)
     ve['window1'].title("Методомконечныхэлементоврешателенатор 3000")
 
@@ -982,8 +1001,8 @@ if __name__ == '__main__':
         font=('Courier', 12, 'bold'),
         relief=tk.FLAT, borderwidth=0, height=1, cursor='hand2')  # , command=lambda: block_click_event(box11, 440))
     ve['btn1_title'].place(anchor="nw", relx=0, rely=0)
-    ve['btn1_title'].bind('<Button 1>', lambda event: ev.block_click_event(event, box=ve['box11'], h=440))
-    ve['btn1_title'].bind("<Button 3>", lambda event: ev.block_click_event(event, box=ve['box11'], h=440))
+    ve['btn1_title'].bind('<Button 1>', lambda event: ev.block_click_event(ve, event, box=ve['box11'], h=440))
+    ve['btn1_title'].bind("<Button 3>", lambda event: ev.block_click_event(ve, event, box=ve['box11'], h=440))
 
     ve['lbl1_info'] = tk.Label(
         master=ve['box10'],
@@ -1003,21 +1022,24 @@ if __name__ == '__main__':
     ve['lbl1_input1'].grid(row=0, column=0, padx=12, pady=0)
 
     ve['spin_input_num'] = tk.Spinbox(master=ve['box110'], from_=1, to=10, justify="center", font=('Courier', 15),
-                                      width=3, relief=tk.RIDGE, borderwidth=3, command=ev.spin_input_num_event)
+                                      width=3, relief=tk.RIDGE, borderwidth=3,
+                                      command=lambda: ev.spin_input_num_event(ve=ve))
     ve['spin_input_num'].grid(row=0, column=1, padx=10, pady=0)
-    ve['spin_input_num'].bind("<KeyPress>", ev.spin_input_num_event)
+    ve['spin_input_num'].bind("<KeyPress>", lambda event: ev.spin_input_num_event(ve, event))
 
     ve['btn_input_num'] = tk.Button(master=ve['box110'], text="Сгенерировать", width=18, font=('Courier', 10),
-                                    relief=tk.RIDGE, borderwidth=3, cursor="hand2", command=
-                                    lambda: ev.btn_input_num_event(ve))
+                                    relief=tk.RIDGE, borderwidth=3, cursor="hand2",
+                                    command=lambda: ev.btn_input_num_event(ve))
     ve['btn_input_num'].grid(row=0, column=2, padx=10, pady=0)
 
     ve['btn_input_imp'] = tk.Button(master=ve['box110'], text="Импортировать", width=15, font=('Courier', 10),
-                                    relief=tk.RIDGE, borderwidth=3, cursor="hand2", command=ev.btn_input_imp_event)
+                                    relief=tk.RIDGE, borderwidth=3, cursor="hand2",
+                                    command=lambda: ev.btn_input_imp_event(ve))
     ve['btn_input_imp'].grid(row=0, column=3, padx=10, pady=0)
 
     ve['btn_export'] = tk.Button(master=ve['box110'], text="Экспортировать", width=15, font=('Courier', 10),
-                                 relief=tk.RIDGE, borderwidth=3, state="disabled", command=ev.export_event)
+                                 relief=tk.RIDGE, borderwidth=3, state="disabled",
+                                 command=lambda: ev.export_event(ve))
     ve['btn_export'].grid(row=0, column=4, padx=10, pady=0)
 
     ve['cnv'] = tk.Canvas(master=ve['box11'], width=1030, height=364, relief=tk.RIDGE, bg="white", borderwidth=3)
@@ -1040,8 +1062,8 @@ if __name__ == '__main__':
         font=('Courier', 12, 'bold'),
         relief=tk.FLAT, borderwidth=0, height=1, cursor='hand2')  # , command=lambda: block_click_event(box21, 440))
     ve['btn2_title'].place(anchor="nw", relx=0, rely=0)
-    ve['btn2_title'].bind('<Button 1>', lambda event: ev.block_click_event(event, box=ve['box21'], h=440))
-    ve['btn2_title'].bind("<Button 3>", lambda event: ev.block_click_event(event, box=ve['box21'], h=440))
+    ve['btn2_title'].bind('<Button 1>', lambda event: ev.block_click_event(ve, event, box=ve['box21'], h=440))
+    ve['btn2_title'].bind("<Button 3>", lambda event: ev.block_click_event(ve, event, box=ve['box21'], h=440))
 
     ve['lbl2_info'] = tk.Label(
         master=ve['box20'],
@@ -1071,7 +1093,7 @@ if __name__ == '__main__':
 
     ve['btn_calculate'] = tk.Button(master=ve['box210'], text="Показать", width=10, font=('Courier', 10),
                                     state='disabled',
-                                    relief=tk.RIDGE, borderwidth=3, command=ev.btn_calculate_event)
+                                    relief=tk.RIDGE, borderwidth=3, command=lambda: ev.btn_calculate_event(ve))
     ve['btn_calculate'].grid(row=0, column=3, padx=12, pady=0)
 
     ve['cnv2'] = tk.Canvas(master=ve['box21'], width=1030, height=364, relief=tk.RIDGE, bg="white", borderwidth=3)
@@ -1094,8 +1116,8 @@ if __name__ == '__main__':
         font=('Courier', 12, 'bold'),
         relief=tk.FLAT, borderwidth=0, height=1, cursor='hand2')  # , command=lambda: block_click_event(box31, 440))
     ve['btn3_title'].place(anchor="nw", relx=0, rely=0)
-    ve['btn3_title'].bind('<Button 1>', lambda event: ev.block_click_event(event, box=ve['box31'], h=440))
-    ve['btn3_title'].bind("<Button 3>", lambda event: ev.block_click_event(event, box=ve['box31'], h=440))
+    ve['btn3_title'].bind('<Button 1>', lambda event: ev.block_click_event(ve, event, box=ve['box31'], h=440))
+    ve['btn3_title'].bind("<Button 3>", lambda event: ev.block_click_event(ve, event, box=ve['box31'], h=440))
 
     ve['lbl3_info'] = tk.Label(
         master=ve['box30'],
@@ -1114,7 +1136,7 @@ if __name__ == '__main__':
     ve['lbl3_result'].grid(row=0, column=0, padx=10, pady=0)
 
     ve['cmb_result'] = Combobox(master=ve['box310'], width=26, font=('Courier', 12), state='readonly',
-                          values=("Данные аппроксимаций", "Графики аппроксимаций", "Деформированное состояние"))
+                                values=("Данные аппроксимаций", "Графики аппроксимаций", "Деформированное состояние"))
     ve['cmb_result'].current(0)
     ve['cmb_result'].grid(row=0, column=1, padx=10, pady=0)
 
@@ -1131,12 +1153,12 @@ if __name__ == '__main__':
 
     ve['btn_result_output'] = tk.Button(master=ve['box310'], text="Показать", width=10, font=('Courier', 10),
                                         state='disabled',
-                                        relief=tk.RIDGE, borderwidth=3, command=ev.btn_result_output_event)
+                                        relief=tk.RIDGE, borderwidth=3, command=lambda: ev.btn_result_output_event(ve))
     ve['btn_result_output'].grid(row=0, column=4, padx=8, pady=0)
 
     ve['btn_result_export'] = tk.Button(master=ve['box310'], text="Экспортировать", width=15, font=('Courier', 10),
                                         state='disabled', relief=tk.RIDGE, borderwidth=3,
-                                        command=ev.btn_result_export_event)
+                                        command=lambda: ev.btn_result_export_event(ve))
     ve['btn_result_export'].grid(row=0, column=5, padx=8, pady=0)
 
     ve['area_box'] = tk.Frame(master=ve['box31'], relief=tk.FLAT, borderwidth=0)
@@ -1146,6 +1168,9 @@ if __name__ == '__main__':
                                   borderwidth=3)
     ve['output_area'].pack()
 
-    # конец
-
     ve['window1'].mainloop()
+
+
+# coded by QWertyIX
+if __name__ == '__main__':
+    create_interface()

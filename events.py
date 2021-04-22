@@ -7,11 +7,11 @@ import tkinter as tk
 
 
 # функция скрытия и открытия блоков
-def block_click_event(event, box, h):
+def block_click_event(ve, event, box, h):
     if event.num == 1:
-        mn.box11['height'] = 5
-        mn.box21['height'] = 5
-        mn.box31['height'] = 5
+        ve['box11']['height'] = 5
+        ve['box21']['height'] = 5
+        ve['box31']['height'] = 5
     if box['height'] == 5:
         box['height'] = h
     else:
@@ -19,8 +19,8 @@ def block_click_event(event, box, h):
 
 
 # обработчик закрытия окна опций (любого)
-def option_close_event(option_window):
-    mn.window1.attributes('-disabled', False)
+def option_close_event(ve, option_window):
+    ve['window1'].attributes('-disabled', False)
     option_window.destroy()
 
 
@@ -61,7 +61,7 @@ def el_type_btn_click_subevent(elem_data_copy, lbl_type, j, spn_rigidity, lbl_ri
 
 
 # подфункция для сохранения данных, введённых в окне изменения узла
-def node_save_subevent(ar_of_data, node_data_copy, spn_force, nd_opt_window, ind_of_axis=0, ind_of_node=0):
+def node_save_subevent(ve, ar_of_data, node_data_copy, spn_force, nd_opt_window, ind_of_axis=0, ind_of_node=0):
     node_data_copy[1] = int(spn_force.get())
 
     if (ar_of_data[ind_of_axis][ind_of_node] == 1) and (node_data_copy[0] == 1):
@@ -106,16 +106,16 @@ def node_save_subevent(ar_of_data, node_data_copy, spn_force, nd_opt_window, ind
         ar_of_data[5][ind_of_node] = node_data_copy[1]
         ar_of_data[6][ind_of_node] = ind_of_node + 1
 
-    mn.element_full_recreating(len(ar_of_data[2]))
+    mn.element_full_recreating(ve, len(ar_of_data[2]))
 
-    if mn.btn_input_num['state'] == 'disabled':
-        mn.btn_input_num.config(state="normal", cursor="hand2")
+    if ve['btn_input_num']['state'] == 'disabled':
+        ve['btn_input_num'].config(state="normal", cursor="hand2")
 
-    option_close_event(nd_opt_window)
+    option_close_event(ve, nd_opt_window)
 
 
 # подфункция для сохранения данных, введённых в окне изменения элемента
-def elem_save_subevent(ar_of_data, elem_data_copy, spn_rigidity, el_opt_window, ind_of_axis=0, ind_of_elem=0):
+def elem_save_subevent(ve, ar_of_data, elem_data_copy, spn_rigidity, el_opt_window, ind_of_axis=0, ind_of_elem=0):
     if int(spn_rigidity.get()) > 99:
         elem_data_copy[1] = 99
     elif int(spn_rigidity.get()) < 1:
@@ -160,16 +160,16 @@ def elem_save_subevent(ar_of_data, elem_data_copy, spn_rigidity, el_opt_window, 
     else:
         ar_of_data[ind_of_axis+2][ind_of_elem] = elem_data_copy[0] * elem_data_copy[1]
 
-    mn.element_full_recreating(len(ar_of_data[2]))
+    mn.element_full_recreating(ve, len(ar_of_data[2]))
 
-    if mn.btn_input_num['state'] == 'disabled':
-        mn.btn_input_num.config(state="normal", cursor="hand2")
+    if ve['btn_input_num']['state'] == 'disabled':
+        ve['btn_input_num'].config(state="normal", cursor="hand2")
 
-    option_close_event(el_opt_window)
+    option_close_event(ve, el_opt_window)
 
 
 # функция обработки нажатия кнопки узла
-def node_click_event(ar_of_data, node_data_copy, ind_of_axis=0, ind_of_node=0, num=1):
+def node_click_event(ve, ar_of_data, node_data_copy, ind_of_axis=0, ind_of_node=0, num=1):
 
     if (ind_of_node == 0) or (ind_of_node == len(ar_of_data[ind_of_axis]) - 1):   # 3 - узел крайний, 2 - нет
         node_event_type = 3
@@ -184,7 +184,7 @@ def node_click_event(ar_of_data, node_data_copy, ind_of_axis=0, ind_of_node=0, n
     # локальная копия данных, которую можно не сохранить = способ закрепления, значение силы
     node_data_copy = [ar_of_data[ind_of_axis][ind_of_node], ar_of_data[5][ind_of_node] if ind_of_axis == 0 else 0]
 
-    mn.window1.attributes('-disabled', True)
+    ve['window1'].attributes('-disabled', True)
     nd_opt_window = tk.Tk()
     nd_opt_window.resizable(width=False, height=False)
     nd_opt_window.title(
@@ -251,22 +251,22 @@ def node_click_event(ar_of_data, node_data_copy, ind_of_axis=0, ind_of_node=0, n
 
     btn_save = tk.Button(master=node_box3, text=" Применить ", font=('Courier', 11), relief=tk.RIDGE,
                          borderwidth=3, cursor="hand2",
-                         command=lambda: node_save_subevent(ar_of_data, node_data_copy, spn_force, nd_opt_window,
+                         command=lambda: node_save_subevent(ve, ar_of_data, node_data_copy, spn_force, nd_opt_window,
                                                             ind_of_axis, ind_of_node))
     btn_save.grid(row=0, column=1, padx=5, pady=0)
 
     btn_cancel = tk.Button(master=node_box3, text=" Отмена ", font=('Courier', 11), relief=tk.RIDGE,
-                           borderwidth=3, cursor="hand2", command=lambda: option_close_event(nd_opt_window))
+                           borderwidth=3, cursor="hand2", command=lambda: option_close_event(ve, nd_opt_window))
     btn_cancel.grid(row=0, column=0, padx=5, pady=0)
 
     # продолжение
 
-    nd_opt_window.protocol("WM_DELETE_WINDOW", lambda: option_close_event(nd_opt_window))
+    nd_opt_window.protocol("WM_DELETE_WINDOW", lambda: option_close_event(ve, nd_opt_window))
     nd_opt_window.mainloop()
 
 
 # функция обработки нажатия кнопки элемента
-def element_click_event(ar_of_data, elem_data_copy, ind_of_axis=0, ind_of_elem=0, num=1):
+def element_click_event(ve, ar_of_data, elem_data_copy, ind_of_axis=0, ind_of_elem=0, num=1):
 
     fixations = [0]
 
@@ -301,7 +301,7 @@ def element_click_event(ar_of_data, elem_data_copy, ind_of_axis=0, ind_of_elem=0
     # локальная копия данных, которую можно не сохранить = способ закрепления, значение силы
     elem_data_copy = [mm.sign(ar_of_data[ind_of_axis + 2][ind_of_elem]), abs(ar_of_data[ind_of_axis + 2][ind_of_elem])]
 
-    mn.window1.attributes('-disabled', True)
+    ve['window1'].attributes('-disabled', True)
     el_opt_window = tk.Tk()
     el_opt_window.resizable(width=False, height=False)
     el_opt_window.title(
@@ -357,22 +357,22 @@ def element_click_event(ar_of_data, elem_data_copy, ind_of_axis=0, ind_of_elem=0
 
     btn_save = tk.Button(master=elem_box3, text=" Применить ", font=('Courier', 11), relief=tk.RIDGE,
                          borderwidth=3, cursor="hand2",
-                         command=lambda: elem_save_subevent(ar_of_data, elem_data_copy, spn_rigidity,
+                         command=lambda: elem_save_subevent(ve, ar_of_data, elem_data_copy, spn_rigidity,
                                                             el_opt_window, ind_of_axis, ind_of_elem))
     btn_save.grid(row=0, column=1, padx=5, pady=0)
 
     btn_cancel = tk.Button(master=elem_box3, text=" Отмена ", font=('Courier', 11), relief=tk.RIDGE,
-                           borderwidth=3, cursor="hand2", command=lambda: option_close_event(el_opt_window))
+                           borderwidth=3, cursor="hand2", command=lambda: option_close_event(ve, el_opt_window))
     btn_cancel.grid(row=0, column=0, padx=5, pady=0)
 
     # продолжение
 
-    el_opt_window.protocol("WM_DELETE_WINDOW", lambda: option_close_event(el_opt_window))
+    el_opt_window.protocol("WM_DELETE_WINDOW", lambda: option_close_event(ve, el_opt_window))
     el_opt_window.mainloop()
 
 
 # функция обработки нажатий на кнопки создания элементов
-def create_add_btn_event(ar_of_data, ind_of_node, n):
+def create_add_btn_event(ve, ar_of_data, ind_of_node, n):
     ar_of_data[1][ind_of_node + n] = 1
     ar_of_data[6][ind_of_node + n] = max(*ar_of_data[6], len(ar_of_data[0])) + 1
     ar_of_data[3][ind_of_node + min(n, 0)] = -1
@@ -380,86 +380,85 @@ def create_add_btn_event(ar_of_data, ind_of_node, n):
     # если нормаль 1, то будет "+0" и смотрим правый элемент (с номером узла)
     # если нормаль -1, то будет "-1" и смотрим левый элемент (номер узла -1)
 
-    mn.element_full_recreating(len(ar_of_data[2]))
+    mn.element_full_recreating(ve, len(ar_of_data[2]))
 
-    if mn.btn_input_num['state'] == 'disabled':
-        mn.btn_input_num.config(state="normal", cursor="hand2")
+    if ve['btn_input_num']['state'] == 'disabled':
+        ve['btn_input_num'].config(state="normal", cursor="hand2")
 
 
 # функция обработки взаимодействия со спинбоксом
-def spin_input_num_event(event=""):   # изменилось значение в боксе
+def spin_input_num_event(ve, event=None):   # изменилось значение в боксе
     keycode = 0
-    if event != "":
+    if event:
         keycode = event.keycode
     if keycode == 13:   # если кнопка рабочая и нажимаем энтер, то вызываем её событие
-        if mn.btn_input_num["state"] != "disabled":
-            btn_input_num_event()
+        if ve['btn_input_num']["state"] != "disabled":
+            btn_input_num_event(ve)
     else:
-        mn.btn_input_num.config(state="normal", cursor="hand2")
+        ve['btn_input_num'].config(state="normal", cursor="hand2")
 
 
 # функция обработки нажатия кнопки перегенерировать
-def btn_input_num_event():
-    if 1 <= int(mn.spin_input_num.get()) <= 10:   # обрабатываем только верные значения
+def btn_input_num_event(ve):
+    if 1 <= int(ve['spin_input_num'].get()) <= 10:   # обрабатываем только верные значения
+        mn.massive_regeneration(int(ve['spin_input_num'].get()))
 
-        mn.massive_regeneration(int(mn.spin_input_num.get()))
+        mn.element_full_recreating(ve, len(mn.ar_of_data[2]))
 
-        mn.element_full_recreating(len(mn.ar_of_data[2]))
+        ve['btn_input_num'].config(state="disabled", cursor="arrow")
 
-        mn.btn_input_num.config(state="disabled", cursor="arrow")
+    if ve['btn_calculate']['state'] == 'disabled':
+        ve['btn_calculate'].config(state="normal", cursor="hand2")
+    if ve['btn_result_output']['state'] == 'disabled':
+        ve['btn_result_output'].config(state="normal", cursor="hand2")
+    if ve['btn_export']['state'] == 'disabled':
+        ve['btn_export'].config(state="normal", cursor="hand2")
 
-    if mn.btn_calculate['state'] == 'disabled':
-        mn.btn_calculate.config(state="normal", cursor="hand2")
-    if mn.btn_result_output['state'] == 'disabled':
-        mn.btn_result_output.config(state="normal", cursor="hand2")
-    if mn.btn_export['state'] == 'disabled':
-        mn.btn_export.config(state="normal", cursor="hand2")
-
-    mn.window1.title("Методомконечныхэлементоврешателенатор 3000")
+    ve['window1'].title("Методомконечныхэлементоврешателенатор 3000")
 
 
 # функция обработки нажатия кнопки импорта
-def btn_input_imp_event():
-    mn.massive_import()
+def btn_input_imp_event(ve):
+    mn.massive_import(ve)
 
-    mn.element_full_recreating(len(mn.ar_of_data[2]))
+    mn.element_full_recreating(ve, len(mn.ar_of_data[2]))
 
-    if mn.btn_input_num['state'] == 'disabled':
-        mn.btn_input_num.config(state="normal", cursor="hand2")
-    if mn.btn_calculate['state'] == 'disabled':
-        mn.btn_calculate.config(state="normal", cursor="hand2")
-    if mn.btn_result_output['state'] == 'disabled':
-        mn.btn_result_output.config(state="normal", cursor="hand2")
-    if mn.btn_export['state'] == 'disabled':
-        mn.btn_export.config(state="normal", cursor="hand2")
+    if ve['btn_input_num']['state'] == 'disabled':
+        ve['btn_input_num'].config(state="normal", cursor="hand2")
+    if ve['btn_calculate']['state'] == 'disabled':
+        ve['btn_calculate'].config(state="normal", cursor="hand2")
+    if ve['btn_result_output']['state'] == 'disabled':
+        ve['btn_result_output'].config(state="normal", cursor="hand2")
+    if ve['btn_export']['state'] == 'disabled':
+        ve['btn_export'].config(state="normal", cursor="hand2")
 
 
 # функция обработки нажатия кнопки экспорта
-def export_event():
-    mn.massive_export()
+def export_event(ve):
+    mn.massive_export(ve)
 
 
 # функция обработки нажатия кнопки Показать из блока 2
-def btn_calculate_event():
+def btn_calculate_event(ve):
     # создаём все мат. объекты и заполняем
     mn.matrix_calculation()
 
     # заполняем таблицу на основе выбранных параметров
-    mn.create_output_matrix(mn.cmb_calculate1.current(), mn.cmb_calculate2.current())
+    mn.create_output_matrix(ve, ve['cmb_calculate1'].current(), ve['cmb_calculate2'].current())
 
 
 # функция обработки нажатия кнопки Показать из блока 3
-def btn_result_output_event():
+def btn_result_output_event(ve):
     # находим аппроксимации
     mn.approximation_calculation()
 
     # выводим тип данных, который выбрал пользователь
-    mn.output_result(mn.cmb_result.current(), int(mn.spin_result_accuracy.get()) + 1)
+    mn.output_result(ve, ve['cmb_result'].current(), int(ve['spin_result_accuracy'].get()) + 1)
 
-    if mn.btn_result_export['state'] == 'disabled':
-        mn.btn_result_export.config(state="normal", cursor="hand2")
+    if ve['btn_result_export']['state'] == 'disabled':
+        ve['btn_result_export'].config(state="normal", cursor="hand2")
 
 
 # функция обработки нажатия кнопки экспорта результатов
-def btn_result_export_event():
-    mn.result_export()
+def btn_result_export_event(ve):
+    mn.result_export(ve)
